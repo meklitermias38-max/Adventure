@@ -8,7 +8,7 @@ from datetime import date
 # ============================================================================
 st.set_page_config(
     page_title="DayRise Adventures",
-    page_icon="🌅",
+    page_icon="💫",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -209,8 +209,9 @@ with st.sidebar:
     if name_typed:
         lookup_key = name_typed.lower()
         
+        # New profile generator
         if lookup_key not in st.session_state.name_ledger:
-            used_names = [p["adventurous_name"] for p in st.session_state.name_ledger.values()]
+            used_names = [p["adventurous_name"] for p in st.session_state.name_ledger.values() if "adventurous_name" in p]
             while True:
                 p_choice = random.choice(list(PREFIX_DATA.keys()))
                 s_choice = random.choice(list(SUFFIX_DATA.keys()))
@@ -229,8 +230,19 @@ with st.sidebar:
         
         st.session_state.actual_name = name_typed
         active_profile = st.session_state.name_ledger[lookup_key]
-        current_adventurous_name = active_profile["adventurous_name"]
         
+        # 🛡️ SAFETY PROTECTION FALLBACK: Auto-heals profiles missing new fields
+        if "prefix" not in active_profile or "suffix" not in active_profile:
+            adv_name = active_profile.get("adventurous_name", "Atlas Rogue")
+            name_parts = adv_name.split()
+            active_profile["prefix"] = name_parts[0] if name_parts[0] in PREFIX_DATA else random.choice(list(PREFIX_DATA.keys()))
+            active_profile["suffix"] = name_parts[1] if len(name_parts) > 1 and name_parts[1] in SUFFIX_DATA else random.choice(list(SUFFIX_DATA.keys()))
+        if "preferences" not in active_profile:
+            active_profile["preferences"] = [("Go Out 🏃‍♂️", "Stay In 🏠"), ("Run Quick ⚡", "Walk Slow 🚶‍♂️")]
+        if "archive" not in active_profile:
+            active_profile["archive"] = []
+
+        current_adventurous_name = active_profile["adventurous_name"]
         p_val = active_profile["prefix"]
         s_val = active_profile["suffix"]
         name_meaning = f"**{p_val}** ({PREFIX_DATA[p_val]['desc']}) + **{s_val}** {SUFFIX_DATA[s_val]}"
@@ -270,7 +282,7 @@ with st.sidebar:
 # ============================================================================
 # MAIN HUB VIEW INTERFACE
 # ============================================================================
-st.markdown('<div class="drx-title">🌅 DayRise Adventures</div>', unsafe_allow_html=True)
+st.markdown('<div class="drx-title">💫 DayRise Adventures</div>', unsafe_allow_html=True)
 st.markdown('<div class="drx-sub">A personalized tactical framework for routine breaking.</div>', unsafe_allow_html=True)
 
 if not st.session_state.actual_name:
