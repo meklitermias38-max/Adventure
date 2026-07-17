@@ -1,8 +1,12 @@
+rite app.py with cookie-based persistence, light theme, and no XP/streak
+bash
+
+cat > /home/claude/app.py << 'PYEOF'
 import streamlit as st
 import streamlit.components.v1 as components
+import extra_streamlit_components as stx
 import random
 import json
-import os
 from datetime import datetime, date, timedelta
 
 # ============================================================================
@@ -10,57 +14,60 @@ from datetime import datetime, date, timedelta
 # ============================================================================
 st.set_page_config(
     page_title="DayRise Adventures",
-    page_icon="🌅",
+    page_icon="🌤️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dayrise_data.json")
+COOKIE_NAME = "dayrise_data"
 
 # ============================================================================
-# PERSISTENCE LAYER
+# COOKIE MANAGER (persists state in the visitor's browser, no server DB needed)
 # ============================================================================
-def load_all_data():
-    if os.path.exists(DATA_FILE):
+@st.cache_resource
+def get_cookie_manager():
+    return stx.CookieManager(key="dayrise_cookie_manager")
+
+cookie_manager = get_cookie_manager()
+raw_cookies = cookie_manager.get_all()
+
+# The cookie component needs one render pass before values are available.
+if raw_cookies is None:
+    st.stop()
+
+
+def default_player(name, persona):
+    return {"name": name, "persona": persona, "archive": []}
+
+
+def load_player_from_cookies():
+    raw = raw_cookies.get(COOKIE_NAME)
+    if raw:
         try:
-            with open(DATA_FILE, "r") as f:
-                return json.load(f)
+            data = json.loads(raw)
+            if isinstance(data, dict) and "name" in data:
+                data.setdefault("archive", [])
+                return data
         except Exception:
-            return {}
-    return {}
+            return None
+    return None
 
 
-def save_all_data(data):
+def persist_player(player):
+    expires = datetime.now() + timedelta(days=3650)
+    cookie_manager.set(
+        COOKIE_NAME,
+        json.dumps(player),
+        expires_at=expires,
+        key=f"set_{COOKIE_NAME}_{datetime.now().timestamp()}",
+    )
+
+
+def forget_player():
     try:
-        with open(DATA_FILE, "w") as f:
-            json.dump(data, f, indent=2)
+        cookie_manager.delete(COOKIE_NAME, key=f"del_{COOKIE_NAME}_{datetime.now().timestamp()}")
     except Exception:
         pass
-
-
-def default_player(persona="Urban Explorer 🌃"):
-    return {
-        "persona": persona,
-        "xp": 0,
-        "level": 1,
-        "streak": 0,
-        "last_completed_date": None,
-        "last_seen_date": None,
-        "archive": [],
-        "total_completed": 0,
-    }
-
-
-def get_level_info(xp):
-    level = min(10, 1 + xp // 100)
-    if level >= 10:
-        progress_xp = 100
-        percent = 100
-    else:
-        progress_xp = xp - (level - 1) * 100
-        percent = int((progress_xp / 100) * 100)
-    return level, progress_xp, percent
-
 
 # ============================================================================
 # QUEST BANKS
@@ -165,7 +172,7 @@ PERSONAS = [
 ]
 
 # ============================================================================
-# CUSTOM CSS — THE VISUAL SHELL
+# CUSTOM CSS — LIGHT, AIRY VISUAL SHELL
 # ============================================================================
 CUSTOM_CSS = """
 <style>
@@ -177,11 +184,11 @@ html, body, [class*="css"] {
 
 /* ---------- APP BACKGROUND ---------- */
 .stApp {
-    background: radial-gradient(circle at 15% 0%, rgba(255,75,75,0.08) 0%, transparent 45%),
-                radial-gradient(circle at 85% 15%, rgba(0,240,255,0.08) 0%, transparent 45%),
-                radial-gradient(circle at 50% 100%, rgba(255,215,0,0.05) 0%, transparent 50%),
-                #0d1117;
-    color: #e6edf3;
+    background: radial-gradient(circle at 12% 0%, rgba(255,140,120,0.10) 0%, transparent 45%),
+                radial-gradient(circle at 88% 10%, rgba(90,180,255,0.10) 0%, transparent 45%),
+                radial-gradient(circle at 50% 100%, rgba(255,210,90,0.10) 0%, transparent 50%),
+                #fbf9f5;
+    color: #2d2d2d;
 }
 
 #MainMenu {visibility: hidden;}
@@ -193,13 +200,14 @@ h1, h2, h3, h4 {
     font-family: 'Poppins', sans-serif !important;
     font-weight: 800 !important;
     letter-spacing: -0.5px;
+    color: #2d2d2d;
 }
 
 .drx-hero-title {
     font-family: 'Poppins', sans-serif;
     font-weight: 900;
     font-size: 3rem;
-    background: linear-gradient(90deg, #ff4b4b 0%, #ffd700 50%, #00f0ff 100%);
+    background: linear-gradient(90deg, #ff6b6b 0%, #ffb703 50%, #3aa9ff 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -208,7 +216,7 @@ h1, h2, h3, h4 {
 }
 
 .drx-hero-sub {
-    color: #8b949e;
+    color: #6b6459;
     font-size: 1.05rem;
     font-weight: 500;
     margin-top: 4px;
@@ -219,7 +227,7 @@ h1, h2, h3, h4 {
     font-family: 'Poppins', sans-serif;
     font-weight: 800;
     font-size: 1.4rem;
-    color: #e6edf3;
+    color: #2d2d2d;
     margin: 0 0 0.6rem 0;
     display: flex;
     align-items: center;
@@ -228,39 +236,26 @@ h1, h2, h3, h4 {
 
 /* ---------- GLASS ADVENTURE CARDS ---------- */
 .drx-card {
-    background: rgba(22, 27, 34, 0.75);
+    background: rgba(255, 255, 255, 0.72);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(0,0,0,0.06);
     border-radius: 20px;
     padding: 28px 30px;
     margin-bottom: 22px;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 8px 26px rgba(45,32,20,0.06);
     transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
 .drx-card:hover {
     transform: translateY(-3px);
-    border-color: rgba(255,255,255,0.16);
+    box-shadow: 0 14px 34px rgba(45,32,20,0.10);
 }
 
-.drx-card-coral {
-    box-shadow: 0 0 0px rgba(255,75,75,0.0), 0 8px 32px rgba(0,0,0,0.35);
-    border-top: 2px solid rgba(255,75,75,0.55);
-}
-.drx-card-coral:hover { box-shadow: 0 0 40px rgba(255,75,75,0.28), 0 8px 32px rgba(0,0,0,0.4); }
-
-.drx-card-cyan {
-    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
-    border-top: 2px solid rgba(0,240,255,0.55);
-}
-.drx-card-cyan:hover { box-shadow: 0 0 40px rgba(0,240,255,0.28), 0 8px 32px rgba(0,0,0,0.4); }
-
-.drx-card-gold {
-    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
-    border-top: 2px solid rgba(255,215,0,0.55);
-}
-.drx-card-gold:hover { box-shadow: 0 0 40px rgba(255,215,0,0.28), 0 8px 32px rgba(0,0,0,0.4); }
+.drx-card-coral { border-top: 3px solid #ff8a80; }
+.drx-card-cyan  { border-top: 3px solid #63b3ff; }
+.drx-card-gold  { border-top: 3px solid #ffc93c; }
 
 .drx-tag {
     display: inline-block;
@@ -272,26 +267,26 @@ h1, h2, h3, h4 {
     text-transform: uppercase;
     margin-bottom: 14px;
 }
-.drx-tag-weekday { background: rgba(0,240,255,0.14); color: #00f0ff; border: 1px solid rgba(0,240,255,0.4); }
-.drx-tag-weekend { background: rgba(255,75,75,0.14); color: #ff8080; border: 1px solid rgba(255,75,75,0.4); }
+.drx-tag-weekday { background: rgba(58,169,255,0.12); color: #2081e2; border: 1px solid rgba(58,169,255,0.3); }
+.drx-tag-weekend { background: rgba(255,107,107,0.12); color: #e5544f; border: 1px solid rgba(255,107,107,0.3); }
 
 .drx-quest-title {
     font-family: 'Poppins', sans-serif;
     font-weight: 800;
     font-size: 1.65rem;
     margin-bottom: 10px;
-    color: #f0f6fc;
+    color: #2d2d2d;
 }
 
 .drx-quest-desc {
-    color: #c9d1d9;
+    color: #4a453e;
     font-size: 1.02rem;
     line-height: 1.65;
 }
 
 /* ---------- BUTTONS ---------- */
 div.stButton > button {
-    background: linear-gradient(135deg, #ff4b4b 0%, #ff7a45 100%);
+    background: linear-gradient(135deg, #ff8a80 0%, #ffb347 100%);
     color: white;
     border: none;
     border-radius: 14px;
@@ -299,27 +294,25 @@ div.stButton > button {
     font-weight: 700;
     font-size: 0.95rem;
     letter-spacing: 0.3px;
-    box-shadow: 0 4px 14px rgba(255,75,75,0.35);
+    box-shadow: 0 6px 16px rgba(255,138,128,0.35);
     transition: all 0.18s ease;
     width: 100%;
 }
 div.stButton > button:hover {
     transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 26px rgba(255,75,75,0.55);
+    box-shadow: 0 10px 22px rgba(255,138,128,0.45);
     color: white;
     border: none;
 }
 div.stButton > button:active {
     transform: translateY(0px) scale(0.98);
-    box-shadow: 0 2px 8px rgba(255,75,75,0.4);
+    box-shadow: 0 3px 10px rgba(255,138,128,0.35);
 }
 
-/* secondary-styled buttons via key prefix trick handled globally, all buttons share base gradient */
-
-/* ---------- SIDEBAR: COMMAND CENTER ---------- */
+/* ---------- SIDEBAR ---------- */
 section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #10151c 0%, #0d1117 100%);
-    border-right: 1px solid rgba(0,240,255,0.15);
+    background: linear-gradient(180deg, #ffffff 0%, #fbf7f0 100%);
+    border-right: 1px solid rgba(0,0,0,0.06);
 }
 section[data-testid="stSidebar"] .block-container {
     padding-top: 1.4rem;
@@ -329,12 +322,11 @@ section[data-testid="stSidebar"] .block-container {
     font-family: 'Poppins', sans-serif;
     font-weight: 900;
     font-size: 1.25rem;
-    color: #00f0ff;
-    text-shadow: 0 0 18px rgba(0,240,255,0.6);
+    color: #e5544f;
     margin-bottom: 2px;
 }
 .drx-cc-sub {
-    color: #6e7681;
+    color: #9a9284;
     font-size: 0.78rem;
     font-weight: 600;
     letter-spacing: 1px;
@@ -343,79 +335,27 @@ section[data-testid="stSidebar"] .block-container {
 }
 
 .drx-profile-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(0,0,0,0.02);
+    border: 1px solid rgba(0,0,0,0.06);
     border-radius: 16px;
     padding: 18px;
     margin-bottom: 16px;
 }
 
-.drx-level-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #ffd700, #ff9d00);
-    color: #0d1117;
-    font-weight: 900;
-    font-size: 1.1rem;
-    box-shadow: 0 0 20px rgba(255,215,0,0.5);
-}
-
-.xp-bar-container {
-    width: 100%;
-    height: 14px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 999px;
-    overflow: hidden;
-    margin-top: 8px;
-    border: 1px solid rgba(255,255,255,0.08);
-}
-.xp-bar-fill {
-    height: 100%;
-    border-radius: 999px;
-    background: linear-gradient(90deg, #00f0ff, #ffd700);
-    box-shadow: 0 0 12px rgba(0,240,255,0.7);
-    transition: width 0.6s ease;
-}
-
-.drx-streak-box {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: rgba(255,75,75,0.08);
-    border: 1px solid rgba(255,75,75,0.3);
-    border-radius: 14px;
-    padding: 12px 14px;
+.drx-freespace-note {
+    background: rgba(58,169,255,0.08);
+    border: 1px solid rgba(58,169,255,0.25);
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 0.78rem;
+    color: #2081e2;
     margin-top: 10px;
-}
-.drx-streak-fire {
-    font-size: 1.8rem;
-    animation: flicker 1.4s infinite alternate;
-}
-@keyframes flicker {
-    0%   { transform: scale(1) rotate(-2deg); filter: drop-shadow(0 0 4px #ff4b4b); }
-    50%  { transform: scale(1.12) rotate(2deg); filter: drop-shadow(0 0 12px #ffd700); }
-    100% { transform: scale(1) rotate(-1deg); filter: drop-shadow(0 0 6px #ff4b4b); }
-}
-.drx-streak-num {
-    font-family: 'Poppins', sans-serif;
-    font-weight: 800;
-    font-size: 1.15rem;
-    color: #ffb3b3;
-}
-.drx-streak-label {
-    color: #8b949e;
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    line-height: 1.5;
 }
 
 .drx-archive-item {
-    background: rgba(255,255,255,0.03);
-    border-left: 3px solid #00f0ff;
+    background: rgba(0,0,0,0.02);
+    border-left: 3px solid #ffc93c;
     border-radius: 8px;
     padding: 10px 12px;
     margin-bottom: 8px;
@@ -423,56 +363,32 @@ section[data-testid="stSidebar"] .block-container {
 .drx-archive-title {
     font-weight: 700;
     font-size: 0.85rem;
-    color: #e6edf3;
+    color: #2d2d2d;
 }
 .drx-archive-date {
     font-size: 0.7rem;
-    color: #6e7681;
+    color: #9a9284;
 }
 
 /* ---------- SCROLLBAR ---------- */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: #0d1117; }
-::-webkit-scrollbar-thumb { background: #30363d; border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: #00f0ff; }
+::-webkit-scrollbar-track { background: #fbf9f5; }
+::-webkit-scrollbar-thumb { background: #e8e1d5; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #ffb347; }
 
-/* ---------- MODULE FRAME (used around components.html iframes) ---------- */
+/* ---------- MODULE FRAME ---------- */
 .drx-module-frame {
     border-radius: 18px;
-    border: 1px solid rgba(0,240,255,0.25);
-    box-shadow: 0 0 30px rgba(0,240,255,0.12);
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 8px 26px rgba(45,32,20,0.07);
     overflow: hidden;
     margin-top: 6px;
-}
-
-/* ---------- METRIC PILLS ---------- */
-.drx-pill-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
-.drx-pill {
-    flex: 1;
-    min-width: 90px;
-    text-align: center;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    padding: 10px 6px;
-}
-.drx-pill-value {
-    font-family: 'Poppins', sans-serif;
-    font-weight: 800;
-    font-size: 1.2rem;
-    color: #ffd700;
-}
-.drx-pill-label {
-    font-size: 0.65rem;
-    color: #8b949e;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
 }
 
 hr.drx-divider {
     border: none;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    background: linear-gradient(90deg, transparent, rgba(0,0,0,0.08), transparent);
     margin: 18px 0;
 }
 </style>
@@ -482,10 +398,8 @@ st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 # ============================================================================
 # SESSION STATE INITIALIZATION
 # ============================================================================
-if "all_data" not in st.session_state:
-    st.session_state.all_data = load_all_data()
-if "player_name" not in st.session_state:
-    st.session_state.player_name = ""
+if "player" not in st.session_state:
+    st.session_state.player = load_player_from_cookies()
 if "current_quest" not in st.session_state:
     st.session_state.current_quest = None
 if "quest_pool_key" not in st.session_state:
@@ -503,25 +417,33 @@ quest_pool = WEEKEND_QUESTS if is_weekend else WEEKDAY_QUESTS
 day_type_label = "WEEKEND EXPEDITION" if is_weekend else "WEEKDAY MICRO-ESCAPE"
 
 # ============================================================================
-# SIDEBAR — PLAYER COMMAND CENTER
+# SIDEBAR — YOUR SPACE
 # ============================================================================
 with st.sidebar:
-    st.markdown('<div class="drx-cc-header">⚡ COMMAND CENTER</div>', unsafe_allow_html=True)
-    st.markdown('<div class="drx-cc-sub">Player Profile Dashboard</div>', unsafe_allow_html=True)
+    st.markdown('<div class="drx-cc-header">🌤️ Your Space</div>', unsafe_allow_html=True)
+    st.markdown('<div class="drx-cc-sub">No scores. No pressure. Just show up.</div>', unsafe_allow_html=True)
 
-    name_input = st.text_input("Player Name", value=st.session_state.player_name, placeholder="Enter your name...")
-    if name_input != st.session_state.player_name:
-        st.session_state.player_name = name_input
-        st.session_state.current_quest = None
-
-    if st.session_state.player_name:
-        pname = st.session_state.player_name.strip()
-        if pname not in st.session_state.all_data:
-            st.session_state.all_data[pname] = default_player()
-            save_all_data(st.session_state.all_data)
-
-        player = st.session_state.all_data[pname]
-
+    if st.session_state.player is None:
+        st.markdown('<div class="drx-profile-card">', unsafe_allow_html=True)
+        st.write("Join with your name to save your adventures in this browser.")
+        join_name = st.text_input("Your Name", placeholder="Enter your name...")
+        join_persona = st.selectbox("Specialist Persona", PERSONAS)
+        if st.button("🌱 Start My Journey"):
+            if join_name.strip():
+                new_player = default_player(join_name.strip(), join_persona)
+                st.session_state.player = new_player
+                persist_player(new_player)
+                st.rerun()
+            else:
+                st.warning("Please enter a name first.")
+        st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        player = st.session_state.player
+        st.markdown('<div class="drx-profile-card">', unsafe_allow_html=True)
+        st.markdown(
+            f'<div style="font-weight:800; font-size:1.1rem; color:#2d2d2d;">👋 Welcome back, {player["name"]}</div>',
+            unsafe_allow_html=True,
+        )
         persona = st.selectbox(
             "Specialist Persona",
             PERSONAS,
@@ -529,60 +451,26 @@ with st.sidebar:
         )
         if persona != player.get("persona"):
             player["persona"] = persona
-            save_all_data(st.session_state.all_data)
-
-        level, progress_xp, percent = get_level_info(player["xp"])
-
-        st.markdown('<div class="drx-profile-card">', unsafe_allow_html=True)
-        profile_html = (
-            '<div style="display:flex; align-items:center; gap:12px;">'
-            '<div class="drx-level-badge">LV__LEVEL__</div>'
-            '<div>'
-            '<div style="font-weight:800; font-size:1.05rem; color:#f0f6fc;">__NAME__</div>'
-            '<div style="font-size:0.78rem; color:#8b949e;">__PERSONA__</div>'
-            '</div>'
-            '</div>'
-            '<div class="xp-bar-container"><div class="xp-bar-fill" style="width:__PERCENT__%;"></div></div>'
-            '<div style="display:flex; justify-content:space-between; margin-top:4px;">'
-            '<span style="font-size:0.72rem; color:#6e7681;">__PROGRESS__ / 100 XP</span>'
-            '<span style="font-size:0.72rem; color:#6e7681;">Level __LEVEL__ / 10</span>'
-            '</div>'
+            st.session_state.player = player
+            persist_player(player)
+        st.markdown(
+            '<div class="drx-freespace-note">🌿 This is your free space — come and go as you please. '
+            'We just keep a gentle log of the adventures you choose to complete.</div>',
+            unsafe_allow_html=True,
         )
-        profile_html = (
-            profile_html
-            .replace("__LEVEL__", str(level))
-            .replace("__NAME__", pname)
-            .replace("__PERSONA__", player["persona"])
-            .replace("__PERCENT__", str(percent))
-            .replace("__PROGRESS__", str(progress_xp if level < 10 else 100))
-        )
-        st.markdown(profile_html, unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        streak_html = (
-            '<div class="drx-streak-box">'
-            '<div class="drx-streak-fire">🔥</div>'
-            '<div>'
-            '<div class="drx-streak-num">__STREAK__ Days</div>'
-            '<div class="drx-streak-label">Active Streak</div>'
-            '</div>'
-            '</div>'
-        ).replace("__STREAK__", str(player["streak"]))
-        st.markdown(streak_html, unsafe_allow_html=True)
-
-        pill_html = (
-            '<div class="drx-pill-row">'
-            '<div class="drx-pill"><div class="drx-pill-value">__XP__</div><div class="drx-pill-label">Total XP</div></div>'
-            '<div class="drx-pill"><div class="drx-pill-value">__DONE__</div><div class="drx-pill-label">Quests Done</div></div>'
-            '</div>'
-        ).replace("__XP__", str(player["xp"])).replace("__DONE__", str(player["total_completed"]))
-        st.markdown(pill_html, unsafe_allow_html=True)
+        if st.button("🔄 Not you? Switch player"):
+            forget_player()
+            st.session_state.player = None
+            st.session_state.current_quest = None
+            st.rerun()
 
         st.markdown('<hr class="drx-divider">', unsafe_allow_html=True)
-        st.markdown('<div class="drx-section-header">📜 Archive of Glory</div>', unsafe_allow_html=True)
+        st.markdown('<div class="drx-section-header">📓 Your Adventure Log</div>', unsafe_allow_html=True)
 
-        if player["archive"]:
-            for entry in player["archive"][:12]:
+        if player.get("archive"):
+            for entry in player["archive"][:15]:
                 item_html = (
                     '<div class="drx-archive-item">'
                     '<div class="drx-archive-title">__EMOJI__ __TITLE__</div>'
@@ -595,30 +483,29 @@ with st.sidebar:
                 st.markdown(item_html, unsafe_allow_html=True)
         else:
             st.markdown(
-                '<div style="color:#6e7681; font-size:0.85rem; font-style:italic;">No quests logged yet. Complete your first adventure to begin your archive!</div>',
+                '<div style="color:#9a9284; font-size:0.85rem; font-style:italic;">'
+                'Nothing here yet. Complete your first adventure and it will show up in your log.</div>',
                 unsafe_allow_html=True,
             )
-    else:
-        st.info("👋 Enter your name above to activate your Command Center.")
 
 # ============================================================================
 # MAIN CONTENT
 # ============================================================================
 st.markdown('<div class="drx-hero-title">🌅 DayRise Adventures</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="drx-hero-sub">Turn every ordinary day into a quest worth logging.</div>',
+    '<div class="drx-hero-sub">Turn every ordinary day into a quest worth remembering.</div>',
     unsafe_allow_html=True,
 )
 
-if not st.session_state.player_name:
+if st.session_state.player is None:
     st.markdown(
         """
         <div class="drx-card drx-card-cyan">
             <div class="drx-quest-title">🎮 Welcome, Adventurer</div>
             <div class="drx-quest-desc">
-                Set your name and persona in the Command Center on the left to unlock today's quest,
-                start earning XP, and begin your Archive of Glory. Every day brings a brand new
-                micro-adventure — weekdays are fast escapes, weekends are wild expeditions.
+                Join with your name in Your Space on the left to unlock today's quest. Your name and
+                adventure log are saved right in this browser, so they'll still be here the next time
+                you visit. Weekdays bring fast micro-escapes, weekends bring wild expeditions.
             </div>
         </div>
         """,
@@ -626,13 +513,11 @@ if not st.session_state.player_name:
     )
     st.stop()
 
-pname = st.session_state.player_name.strip()
-player = st.session_state.all_data[pname]
+player = st.session_state.player
 today_str = today.isoformat()
-already_completed_today = player.get("last_completed_date") == today_str
 
 # --- generate / persist today's quest in session ---
-pool_key = f"{pname}-{today_str}"
+pool_key = f"{player['name']}-{today_str}"
 if st.session_state.quest_pool_key != pool_key or st.session_state.current_quest is None:
     st.session_state.current_quest = random.choice(quest_pool)
     st.session_state.quest_pool_key = pool_key
@@ -673,38 +558,27 @@ with col_actions:
         st.session_state.current_quest = new_quest
         st.rerun()
 
-    if already_completed_today:
-        st.success("✅ Completed today!")
-    else:
-        if st.button("🏁 Complete Quest (+25 XP)"):
-            yesterday_str = (today - timedelta(days=1)).isoformat()
-            if player.get("last_completed_date") == yesterday_str:
-                player["streak"] = player.get("streak", 0) + 1
-            else:
-                player["streak"] = 1
-            player["last_completed_date"] = today_str
-            player["xp"] = player.get("xp", 0) + 25
-            player["level"] = get_level_info(player["xp"])[0]
-            player["total_completed"] = player.get("total_completed", 0) + 1
-            player.setdefault("archive", []).insert(0, {
-                "date": today_str,
-                "title": quest["title"],
-                "emoji": quest["emoji"],
-                "category": quest["category"],
-                "day_type": "Weekend" if is_weekend else "Weekday",
-            })
-            save_all_data(st.session_state.all_data)
-            st.session_state.just_completed = True
-            st.balloons()
-            st.rerun()
+    if st.button("✅ Mark as Complete"):
+        player.setdefault("archive", []).insert(0, {
+            "date": today_str,
+            "title": quest["title"],
+            "emoji": quest["emoji"],
+            "category": quest["category"],
+            "day_type": "Weekend" if is_weekend else "Weekday",
+        })
+        st.session_state.player = player
+        persist_player(player)
+        st.session_state.just_completed = True
+        st.balloons()
+        st.rerun()
 
 if st.session_state.just_completed:
     st.markdown(
         """
         <div class="drx-card drx-card-gold">
-            <div class="drx-quest-title">🏆 Quest Complete!</div>
-            <div class="drx-quest-desc">+25 XP banked, your streak is glowing, and your Archive of Glory just grew.
-            Come back tomorrow for a brand new adventure.</div>
+            <div class="drx-quest-title">🏆 Nice work!</div>
+            <div class="drx-quest-desc">That adventure just got added to your log. No pressure to keep a
+            streak — just come back whenever you feel like another one.</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -728,13 +602,13 @@ if category == "language":
         '<div style="display:flex; align-items:center; gap:10px;">'
         '<div style="font-size:2rem;">__FLAG__</div>'
         '<div>'
-        '<div style="font-size:0.75rem; color:#8b949e; text-transform:uppercase; letter-spacing:1px;">__LANG__</div>'
+        '<div style="font-size:0.75rem; color:#9a9284; text-transform:uppercase; letter-spacing:1px;">__LANG__</div>'
         '<div class="drx-quest-title" style="margin-bottom:2px;">__WORD__</div>'
         '</div>'
         '</div>'
-        '<div style="margin-top:14px; padding:14px; background:rgba(0,240,255,0.06); border-radius:12px; border:1px solid rgba(0,240,255,0.25);">'
-        '<div style="font-size:0.72rem; color:#00f0ff; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🔊 Read Aloud Guide</div>'
-        '<div style="font-family:\'Poppins\',sans-serif; font-weight:800; font-size:1.3rem; color:#00f0ff; text-shadow:0 0 14px rgba(0,240,255,0.6);">__PRON__</div>'
+        '<div style="margin-top:14px; padding:14px; background:rgba(58,169,255,0.07); border-radius:12px; border:1px solid rgba(58,169,255,0.25);">'
+        '<div style="font-size:0.72rem; color:#2081e2; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🔊 Read Aloud Guide</div>'
+        '<div style="font-family:\'Poppins\',sans-serif; font-weight:800; font-size:1.3rem; color:#2081e2;">__PRON__</div>'
         '</div>'
         '<div class="drx-quest-desc" style="margin-top:14px; font-style:italic;">"__MEANING__"</div>'
         '</div>'
@@ -755,34 +629,34 @@ if category == "language":
 elif category == "art":
     st.markdown(
         '<div class="drx-card drx-card-gold"><span class="drx-tag drx-tag-weekend">🎨 ZEN PAINTING DECK</span>'
-        '<div class="drx-quest-desc">Pick a neon brush, choose your size, and sketch freely over the guide outline below.</div></div>',
+        '<div class="drx-quest-desc">Pick a brush, choose your size, and sketch freely over the guide outline below.</div></div>',
         unsafe_allow_html=True,
     )
     PAINT_HTML = """
-    <div style="background:#0d1117; padding:14px; font-family:Inter,sans-serif;">
+    <div style="background:#ffffff; padding:14px; font-family:Inter,sans-serif;">
       <div id="toolbar" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <span style="color:#8b949e; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Brush:</span>
-        <button onclick="setColor('#ff4b4b')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#ff4b4b;cursor:pointer;box-shadow:0 0 10px #ff4b4b;"></button>
-        <button onclick="setColor('#00f0ff')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#00f0ff;cursor:pointer;box-shadow:0 0 10px #00f0ff;"></button>
-        <button onclick="setColor('#ffd700')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#ffd700;cursor:pointer;box-shadow:0 0 10px #ffd700;"></button>
-        <button onclick="setColor('#7CFC00')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#7CFC00;cursor:pointer;box-shadow:0 0 10px #7CFC00;"></button>
-        <button onclick="setColor('#ffffff')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#ffffff;cursor:pointer;box-shadow:0 0 10px #ffffff;"></button>
-        <span style="color:#8b949e; font-size:0.75rem; margin-left:12px;">Size:</span>
+        <span style="color:#9a9284; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Brush:</span>
+        <button onclick="setColor('#ff6b6b')" style="width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:#ff6b6b;cursor:pointer;box-shadow:0 0 0 1px #ddd;"></button>
+        <button onclick="setColor('#3aa9ff')" style="width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:#3aa9ff;cursor:pointer;box-shadow:0 0 0 1px #ddd;"></button>
+        <button onclick="setColor('#ffc93c')" style="width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:#ffc93c;cursor:pointer;box-shadow:0 0 0 1px #ddd;"></button>
+        <button onclick="setColor('#4caf50')" style="width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:#4caf50;cursor:pointer;box-shadow:0 0 0 1px #ddd;"></button>
+        <button onclick="setColor('#2d2d2d')" style="width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:#2d2d2d;cursor:pointer;box-shadow:0 0 0 1px #ddd;"></button>
+        <span style="color:#9a9284; font-size:0.75rem; margin-left:12px;">Size:</span>
         <input type="range" min="2" max="24" value="6" id="brushSize" style="width:100px;">
-        <button onclick="clearCanvas()" style="background:linear-gradient(135deg,#ff4b4b,#ff7a45); color:white; border:none; padding:6px 14px; border-radius:10px; font-weight:700; cursor:pointer;">Clear</button>
+        <button onclick="clearCanvas()" style="background:linear-gradient(135deg,#ff8a80,#ffb347); color:white; border:none; padding:6px 14px; border-radius:10px; font-weight:700; cursor:pointer;">Clear</button>
       </div>
-      <canvas id="zenCanvas" width="760" height="420" style="width:100%; max-width:760px; border-radius:14px; background:#161b22; border:1px solid rgba(255,255,255,0.1); touch-action:none; cursor:crosshair;"></canvas>
+      <canvas id="zenCanvas" width="760" height="420" style="width:100%; max-width:760px; border-radius:14px; background:#faf8f4; border:1px solid rgba(0,0,0,0.08); touch-action:none; cursor:crosshair;"></canvas>
     </div>
     <script>
       const canvas = document.getElementById('zenCanvas');
       const ctx = canvas.getContext('2d');
       let drawing = false;
-      let currentColor = '#00f0ff';
+      let currentColor = '#3aa9ff';
       let lastX = 0, lastY = 0;
 
       function drawGuide() {
         ctx.clearRect(0,0,canvas.width, canvas.height);
-        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.strokeStyle = 'rgba(0,0,0,0.15)';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(150, 210, 90, 0, Math.PI*2);
@@ -828,8 +702,6 @@ elif category == "art":
         ctx.strokeStyle = currentColor;
         ctx.lineWidth = size;
         ctx.lineCap = 'round';
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = currentColor;
         ctx.beginPath();
         ctx.moveTo(lastX, lastY);
         ctx.lineTo(pos.x, pos.y);
@@ -857,14 +729,14 @@ elif category == "mindfulness":
         unsafe_allow_html=True,
     )
     TIMER_HTML = """
-    <div style="background:#0d1117; padding:24px; border-radius:16px; text-align:center; font-family:Inter,sans-serif;">
-      <div id="display" style="font-family:'Poppins',sans-serif; font-size:4rem; font-weight:900; color:#00f0ff; text-shadow:0 0 26px rgba(0,240,255,0.7); letter-spacing:2px;">03:00</div>
+    <div style="background:#ffffff; padding:24px; border-radius:16px; text-align:center; font-family:Inter,sans-serif;">
+      <div id="display" style="font-family:'Poppins',sans-serif; font-size:4rem; font-weight:900; color:#2081e2; letter-spacing:2px;">03:00</div>
       <div style="margin-top:14px; display:flex; justify-content:center; gap:12px;">
-        <button onclick="startTimer()" style="background:linear-gradient(135deg,#00f0ff,#0090ff); color:#0d1117; border:none; padding:10px 22px; border-radius:12px; font-weight:800; cursor:pointer; box-shadow:0 0 16px rgba(0,240,255,0.4);">▶ Start</button>
-        <button onclick="pauseTimer()" style="background:rgba(255,255,255,0.08); color:#e6edf3; border:1px solid rgba(255,255,255,0.2); padding:10px 22px; border-radius:12px; font-weight:800; cursor:pointer;">⏸ Pause</button>
-        <button onclick="resetTimer()" style="background:rgba(255,255,255,0.08); color:#e6edf3; border:1px solid rgba(255,255,255,0.2); padding:10px 22px; border-radius:12px; font-weight:800; cursor:pointer;">↺ Reset</button>
+        <button onclick="startTimer()" style="background:linear-gradient(135deg,#3aa9ff,#63b3ff); color:white; border:none; padding:10px 22px; border-radius:12px; font-weight:800; cursor:pointer;">▶ Start</button>
+        <button onclick="pauseTimer()" style="background:#f2efe9; color:#2d2d2d; border:1px solid rgba(0,0,0,0.1); padding:10px 22px; border-radius:12px; font-weight:800; cursor:pointer;">⏸ Pause</button>
+        <button onclick="resetTimer()" style="background:#f2efe9; color:#2d2d2d; border:1px solid rgba(0,0,0,0.1); padding:10px 22px; border-radius:12px; font-weight:800; cursor:pointer;">↺ Reset</button>
       </div>
-      <div id="celebration" style="margin-top:18px; font-size:1.4rem; font-weight:800; color:#ffd700; text-shadow:0 0 16px rgba(255,215,0,0.6); display:none;">
+      <div id="celebration" style="margin-top:18px; font-size:1.4rem; font-weight:800; color:#e5a100; display:none;">
         🎉 Beautifully done. You're centered. 🎉
       </div>
     </div>
@@ -889,8 +761,7 @@ elif category == "mindfulness":
             clearInterval(intervalId);
             intervalId = null;
             document.getElementById('celebration').style.display = 'block';
-            document.getElementById('display').style.color = '#ffd700';
-            document.getElementById('display').style.textShadow = '0 0 26px rgba(255,215,0,0.8)';
+            document.getElementById('display').style.color = '#e5a100';
           }
         }, 1000);
       }
@@ -901,8 +772,7 @@ elif category == "mindfulness":
         pauseTimer();
         remaining = totalSeconds;
         document.getElementById('celebration').style.display = 'none';
-        document.getElementById('display').style.color = '#00f0ff';
-        document.getElementById('display').style.textShadow = '0 0 26px rgba(0,240,255,0.7)';
+        document.getElementById('display').style.color = '#2081e2';
         render();
       }
       render();
@@ -920,22 +790,20 @@ elif category == "chaos":
         unsafe_allow_html=True,
     )
     COIN_HTML = """
-    <div style="background:#0d1117; padding:24px; text-align:center; font-family:Inter,sans-serif;">
-      <div style="display:flex; justify-content:space-around; margin-bottom:18px; color:#8b949e; font-weight:700; font-size:0.85rem;">
+    <div style="background:#ffffff; padding:24px; text-align:center; font-family:Inter,sans-serif;">
+      <div style="display:flex; justify-content:space-around; margin-bottom:18px; color:#9a9284; font-weight:700; font-size:0.85rem;">
         <div>🅰️ __OPT1__</div>
         <div>🅱️ __OPT2__</div>
       </div>
       <div id="scene" style="perspective:600px; display:flex; justify-content:center;">
-        <div id="coin" onclick="flipCoin()" style="width:120px; height:120px; border-radius:50%; position:relative; transform-style:preserve-3d; transition:transform 1.1s cubic-bezier(.2,.8,.2,1); cursor:pointer; background:radial-gradient(circle at 35% 30%, #ffe97a, #ffd700 60%, #b8860b 100%); box-shadow:0 0 30px rgba(255,215,0,0.55); display:flex; align-items:center; justify-content:center; font-size:2.2rem;">🪙</div>
+        <div id="coin" onclick="flipCoin()" style="width:120px; height:120px; border-radius:50%; position:relative; transform-style:preserve-3d; transition:transform 1.1s cubic-bezier(.2,.8,.2,1); cursor:pointer; background:radial-gradient(circle at 35% 30%, #fff1b8, #ffc93c 60%, #e0a500 100%); box-shadow:0 6px 18px rgba(224,165,0,0.35); display:flex; align-items:center; justify-content:center; font-size:2.2rem;">🪙</div>
       </div>
-      <div id="result" style="margin-top:20px; font-family:'Poppins',sans-serif; font-weight:900; font-size:1.5rem; color:#ff8080; text-shadow:0 0 16px rgba(255,75,75,0.6); min-height:2rem;"></div>
-      <button onclick="flipCoin()" style="margin-top:10px; background:linear-gradient(135deg,#ff4b4b,#ff7a45); color:white; border:none; padding:10px 24px; border-radius:12px; font-weight:800; cursor:pointer; box-shadow:0 0 16px rgba(255,75,75,0.4);">Flip the Coin</button>
+      <div id="result" style="margin-top:20px; font-family:'Poppins',sans-serif; font-weight:900; font-size:1.5rem; color:#e5544f; min-height:2rem;"></div>
+      <button onclick="flipCoin()" style="margin-top:10px; background:linear-gradient(135deg,#ff8a80,#ffb347); color:white; border:none; padding:10px 24px; border-radius:12px; font-weight:800; cursor:pointer;">Flip the Coin</button>
     </div>
     <script>
       const options = ["__OPT1__", "__OPT2__"];
-      let spins = 0;
       function flipCoin() {
-        spins += 1;
         const coin = document.getElementById('coin');
         const extraTurns = 4 + Math.floor(Math.random()*3);
         const finalIndex = Math.random() < 0.5 ? 0 : 1;
@@ -960,7 +828,7 @@ else:
     st.markdown(
         '<div class="drx-card drx-card-gold"><span class="drx-tag drx-tag-weekend">⭐ FREESTYLE QUEST</span>'
         '<div class="drx-quest-desc">This adventure runs on pure willpower — no gadgets required. '
-        'Just commit, execute, and log it in your Archive of Glory when you\'re done.</div></div>',
+        'Just commit, execute, and log it in your Adventure Log when you\'re done.</div></div>',
         unsafe_allow_html=True,
     )
 
@@ -972,15 +840,15 @@ st.markdown('<hr class="drx-divider">', unsafe_allow_html=True)
 st.markdown('<div class="drx-section-header">🔔 Wake-Up Alerts</div>', unsafe_allow_html=True)
 
 NOTIF_HTML = """
-<div style="background:#0d1117; padding:20px; border-radius:16px; font-family:Inter,sans-serif;">
-  <div style="color:#c9d1d9; font-size:0.92rem; margin-bottom:14px;">
-    Enable browser notifications so DayRise can ping you the moment a new quest drops.
+<div style="background:#ffffff; padding:20px; border-radius:16px; font-family:Inter,sans-serif;">
+  <div style="color:#4a453e; font-size:0.92rem; margin-bottom:14px;">
+    Enable browser notifications so DayRise can gently ping you the moment a new quest drops.
   </div>
   <div style="display:flex; gap:12px; flex-wrap:wrap;">
-    <button onclick="requestPerm()" style="background:linear-gradient(135deg,#00f0ff,#0090ff); color:#0d1117; border:none; padding:10px 20px; border-radius:12px; font-weight:800; cursor:pointer; box-shadow:0 0 16px rgba(0,240,255,0.4);">🔔 Enable Alerts</button>
-    <button onclick="sendTest()" style="background:linear-gradient(135deg,#ffd700,#ff9d00); color:#0d1117; border:none; padding:10px 20px; border-radius:12px; font-weight:800; cursor:pointer; box-shadow:0 0 16px rgba(255,215,0,0.4);">📣 Send Test Notification</button>
+    <button onclick="requestPerm()" style="background:linear-gradient(135deg,#3aa9ff,#63b3ff); color:white; border:none; padding:10px 20px; border-radius:12px; font-weight:800; cursor:pointer;">🔔 Enable Alerts</button>
+    <button onclick="sendTest()" style="background:linear-gradient(135deg,#ffc93c,#ffb347); color:#2d2d2d; border:none; padding:10px 20px; border-radius:12px; font-weight:800; cursor:pointer;">📣 Send Test Notification</button>
   </div>
-  <div id="notifStatus" style="margin-top:12px; font-size:0.85rem; color:#8b949e;"></div>
+  <div id="notifStatus" style="margin-top:12px; font-size:0.85rem; color:#9a9284;"></div>
 </div>
 <script>
   function requestPerm() {
@@ -1037,6 +905,11 @@ with st.expander("📲 Integration Guide — Auto-Open on Your Lockscreen at 7:3
     )
 
 st.markdown(
-    '<div style="text-align:center; color:#6e7681; font-size:0.8rem; margin-top:24px;">Rise. Quest. Repeat. 🌅</div>',
+    '<div style="text-align:center; color:#9a9284; font-size:0.8rem; margin-top:24px;">Rise. Quest. Repeat. 🌅</div>',
     unsafe_allow_html=True,
 )
+PYEOF
+echo "written"
+Output
+
+written
