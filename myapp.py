@@ -101,9 +101,23 @@ VOCAB_BANK = [
     {"language": "Swedish", "flag": "🇸🇪", "word": "Gökotta", "meaning": "Waking up early in the morning intentionally to go outside and hear the first birds sing.", "pronunciation": "goh-kot-tah"}
 ]
 
-# Name pools to build unique adventurous handles
-ADVENTURE_PREFIX = ["Vesper", "Atlas", "Echo", "Sable", "Nova", "Zephyr", "Lyra", "Orion", "Kai", "Sol", "Phoenix"]
-ADVENTURE_SUFFIX = ["Rogue", "Vortex", "Sage", "Wilder", "Flux", "Chrono", "Strider", "Zen", "Tracker", "Alchemist"]
+# --- ADVENTUROUS MEANINGS MATRIX ---
+PREFIX_DATA = {
+    "Vesper": {"theme": "Shadow/Night", "desc": "A quiet catalyst operating in twilight hours", "color": "#d8b4fe"},
+    "Atlas": {"theme": "Mapping/Earth", "desc": "A structural anchor testing the boundaries of routine", "color": "#7dd3fc"},
+    "Echo": {"theme": "Rhythm/Sound", "desc": "An atmospheric force expanding sensory signals", "color": "#fca5a5"},
+    "Sable": {"theme": "Stealth/Focus", "desc": "A sleek, highly observant disruption agent", "color": "#94a3b8"},
+    "Nova": {"theme": "Cosmic/Energy", "desc": "A sudden burst of bright, chaotic behavioral shifts", "color": "#fde047"},
+    "Zephyr": {"theme": "Air/Movement", "desc": "A free-flowing entity shifting paths fluidly", "color": "#86efac"}
+}
+SUFFIX_DATA = {
+    "Rogue": "who shatters established guidelines to uncover hidden micro-moments.",
+    "Vortex": "who pulls nearby structures into a swirl of deliberate spontaneity.",
+    "Sage": "who calculates precise, thoughtful deviations from the everyday norm.",
+    "Wilder": "who roams through urban and creative spaces with uninhibited curiosity.",
+    "Flux": "who constantly shifts states to keep external environments off-balance.",
+    "Chrono": "who bends the daily timeline to extract extra life from standard hours."
+}
 
 # ============================================================================
 # PERSISTENT SESSION STATE VALUES
@@ -113,7 +127,6 @@ if "theme_mode" not in st.session_state:
 if "actual_name" not in st.session_state:
     st.session_state.actual_name = ""
 if "name_ledger" not in st.session_state:
-    # Key: actual name lowercase -> Value: {"adventurous_name": str, "archive": list, "preferences": list}
     st.session_state.name_ledger = {}
 if "quest_revealed" not in st.session_state:
     st.session_state.quest_revealed = False
@@ -128,7 +141,6 @@ today = date.today()
 is_weekend = today.weekday() >= 5
 quest_pool = WEEKEND_QUESTS if is_weekend else WEEKDAY_QUESTS
 
-# Setup default stable quest
 if st.session_state.current_quest is None:
     st.session_state.current_quest = random.choice(quest_pool)
 quest = st.session_state.current_quest
@@ -174,79 +186,86 @@ html, body, [class*="css"], .stApp {{ font-family: 'Inter', sans-serif; backgrou
 .drx-tag {{ display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 12px; background: {tag_bg}; color: {tag_text}; }}
 .drx-quest-title {{ font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 1.35rem; color: {text_color}; margin-bottom: 8px; }}
 .drx-assistance {{ background-color: {assistance_bg}; padding: 12px; border-left: 4px solid {sub_color}; border-radius: 4px; font-size: 0.95rem; margin-top: 14px; color: {text_color}; }}
-.profile-banner {{ background: linear-gradient(135deg, {accent_cyan}, {accent_purple}); padding: 16px; border-radius: 12px; color: white; font-weight: 600; margin-bottom: 20px; }}
+.profile-banner {{ background: linear-gradient(135deg, {accent_cyan}, {accent_purple}); padding: 16px; border-radius: 12px; color: white; font-weight: 600; margin-bottom: 4px; }}
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================================================
-# SIDEBAR CONTROL PANEL (IDENTITY & PREFERENCES MAPPING)
+# SIDEBAR CONTROL PANEL
 # ============================================================================
 with st.sidebar:
     st.title("⚙️ Control Hub")
-    
-    # Theme Controller
     st.session_state.theme_mode = st.radio("App Skin Style", ["Light Mode ☀️", "Dark Mode 🌙"], index=0 if st.session_state.theme_mode == "Light Mode ☀️" else 1)
     st.markdown("---")
     
-    # Login Mechanics via Actual Name
     st.subheader("👤 Login Registry")
     name_typed = st.text_input("Enter Your Actual Name:", value=st.session_state.actual_name).strip()
     
     current_adventurous_name = ""
+    name_meaning = ""
+    theme_color = "#3b82f6"
     active_profile = None
 
     if name_typed:
         lookup_key = name_typed.lower()
         
-        # If the user doesn't exist yet, build a clean profile entry
         if lookup_key not in st.session_state.name_ledger:
-            # Generate an unrepeatable adventurous handle combo
             used_names = [p["adventurous_name"] for p in st.session_state.name_ledger.values()]
             while True:
-                candidate = f"{random.choice(ADVENTURE_PREFIX)} {random.choice(ADVENTURE_SUFFIX)}"
-                if candidate not in used_names or len(used_names) >= 100:
+                p_choice = random.choice(list(PREFIX_DATA.keys()))
+                s_choice = random.choice(list(SUFFIX_DATA.keys()))
+                candidate = f"{p_choice} {s_choice}"
+                if candidate not in used_names or len(used_names) >= 50:
                     break
             
             st.session_state.name_ledger[lookup_key] = {
                 "adventurous_name": candidate,
+                "prefix": p_choice,
+                "suffix": s_choice,
                 "archive": [],
                 "preferences": [("Go Out 🏃‍♂️", "Stay In 🏠"), ("Run Quick ⚡", "Walk Slow 🚶‍♂️")]
             }
-            st.toast(f"Welcome first-timer! Adventurous handle unlocked: {candidate}")
+            st.toast(f"Adventurous identity generated: {candidate}!")
         
-        # Pull active data context from the registry ledger
         st.session_state.actual_name = name_typed
         active_profile = st.session_state.name_ledger[lookup_key]
         current_adventurous_name = active_profile["adventurous_name"]
         
+        p_val = active_profile["prefix"]
+        s_val = active_profile["suffix"]
+        name_meaning = f"**{p_val}** ({PREFIX_DATA[p_val]['desc']}) + **{s_val}** {SUFFIX_DATA[s_val]}"
+        theme_color = PREFIX_DATA[p_val]["color"]
+        
         st.markdown(f"""
-        <div class="profile-banner">
-            🚀 Code Name Assigned:<br>
-            <span style="font-size:1.25rem; font-weight:800;">{current_adventurous_name}</span>
+        <div class="profile-banner" style="background: linear-gradient(135deg, {theme_color}, #475569);">
+            🚀 Adventurer Code Assigned:<br>
+            <span style="font-size:1.35rem; font-weight:800;">{current_adventurous_name}</span>
         </div>
         """, unsafe_allow_html=True)
+        st.caption(f"📖 *Lore:* {name_meaning}")
         
-        # Personalization Matrix Tool
+        # --- CUSTOMISABLE THIS OR THAT SECTIONS ---
         st.markdown("---")
-        st.subheader("🎨 Personal Choice Splitting")
-        st.caption("Customize your personalized dilemma vectors for the global coin flipper below.")
+        st.subheader("🎨 Custom Preference Matrix")
+        st.caption("Define your customized 'This or That' parameters for the flipper below.")
         
-        pref_a_1 = st.text_input("Split 1: Option A", value=active_profile["preferences"][0][0])
-        pref_a_2 = st.text_input("Split 1: Option B", value=active_profile["preferences"][0][1])
-        pref_b_1 = st.text_input("Split 2: Option A", value=active_profile["preferences"][1][0])
-        pref_b_2 = st.text_input("Split 2: Option B", value=active_profile["preferences"][1][1])
+        st.markdown("**Dilemma Axis 1**")
+        p1_this = st.text_input("This (Option A)", value=active_profile["preferences"][0][0], key="p1_this")
+        p1_that = st.text_input("That (Option B)", value=active_profile["preferences"][0][1], key="p1_that")
         
-        # Save modifications dynamically to persistent memory profile
-        active_profile["preferences"] = [(pref_a_1, pref_a_2), (pref_b_1, pref_b_2)]
+        st.markdown("**Dilemma Axis 2**")
+        p2_this = st.text_input("This (Option A)", value=active_profile["preferences"][1][0], key="p2_this")
+        p2_that = st.text_input("That (Option B)", value=active_profile["preferences"][1][1], key="p2_that")
+        
+        active_profile["preferences"] = [(p1_this, p1_that), (p2_this, p2_that)]
 
-        # Render Completed Milestone History Logs
         st.markdown("---")
         st.subheader("📜 Completed Milestones")
         if active_profile["archive"]:
             for item in active_profile["archive"]:
                 st.markdown(f"✅ **{item}**")
         else:
-            st.caption("No adventures finalized yet today.")
+            st.caption("No entries logged yet.")
 
 # ============================================================================
 # MAIN HUB VIEW INTERFACE
@@ -258,7 +277,6 @@ if not st.session_state.actual_name:
     st.info("👋 To begin tracking your progress, please type your Actual Name inside the sidebar registry console.")
     st.stop()
 
-# Map visual color markers accurately
 if quest["category"] in ["dance", "movement"]:
     card_theme = "drx-card-purple"
 elif quest["category"] in ["social", "vocab"]:
@@ -266,13 +284,12 @@ elif quest["category"] in ["social", "vocab"]:
 else:
     card_theme = "drx-card-cyan"
 
-# --- CORE ADVENTURE LOCKER SYSTEM ---
 if not st.session_state.quest_revealed:
     st.markdown("### 🎲 Strategic Objective Locked")
     st.markdown(f"""
     <div style="background: {card_bg}; border: 2px dashed {card_border}; border-radius: 16px; padding: 40px; text-align: center;">
         <span style="font-size: 4.5rem;">🎲</span>
-        <h4 style="margin-top: 12px; font-family: 'Poppins', sans-serif; color: {text_color};">Hey {current_adventurous_name}, Ready to Roll?</h4>
+        <h4 style="margin-top: 12px; font-family: 'Poppins', sans-serif; color: {text_color};">Welcome Back, {current_adventurous_name}</h4>
         <p style="color: {sub_color}; font-size: 0.95rem;">Unleash your action modifier for the day.</p>
     </div>
     """, unsafe_allow_html=True)
@@ -283,7 +300,6 @@ if not st.session_state.quest_revealed:
         st.rerun()
 
 else:
-    # --- QUEST REVEAL FEED ACTIVE ---
     st.markdown(f"""
     <div class="drx-card {card_theme}">
         <span class="drx-tag">{quest['category'].upper()} COMPONENT</span>
@@ -301,20 +317,26 @@ else:
             if quest["title"] not in active_profile["archive"]:
                 active_profile["archive"].insert(0, quest["title"])
             st.balloons()
-            st.success("Milestone achieved and verified in profile registry storage!")
+            
+            # Colored Name-Matched Burst Mechanic
+            st.markdown(f"""
+            <div style="background: {theme_color}22; border: 2px solid {theme_color}; border-radius: 12px; padding: 16px; text-align: center; margin-top: 14px;">
+                <h4 style="color: {theme_color}; margin: 0; font-family: 'Poppins', sans-serif;">🎉 MILESTONE SECURED BY {current_adventurous_name.upper()}!</h4>
+                <p style="margin: 4px 0 0 0; font-size: 0.9rem; color: {text_color};">Registry profile updated successfully.</p>
+            </div>
+            """, unsafe_allow_html=True)
     with col_b:
         if st.button("🔀 Alternate Reroll Quest Pool", use_container_width=True):
             st.session_state.current_quest = random.choice(quest_pool)
             st.rerun()
 
 # ============================================================================
-# PERSISTENT COMPANION MODULES (FITTED ON EVERY REFRESH ENGINE VIEW)
+# PERSISTENT COMPANION MODULES
 # ============================================================================
 st.markdown("---")
 st.markdown("### 🪙 Global Device: The Destiny Coin Flip")
-st.caption("An overarching helper utility calibrated with your personalized choice vectors.")
+st.caption("An overarching helper utility calibrated with your customized choice vectors.")
 
-# Build the choices out from personalized arrays
 pool = active_profile["preferences"]
 opt_a1, opt_a2 = pool[0]
 opt_b1, opt_b2 = pool[1]
@@ -323,11 +345,11 @@ col_c, col_d = st.columns(2)
 with col_c:
     st.markdown(f"""
     <div style="background: {card_bg}; border: 1px solid {card_border}; padding: 16px; border-radius: 12px; text-align: center; margin-bottom:10px;">
-        <span style="font-weight:600; color:{accent_coral};">Split Axis A</span><br>
-        <strong>A:</strong> {opt_a1} vs <strong>B:</strong> {opt_a2}
+        <span style="font-weight:600; color:{accent_coral};">Dilemma Matrix One</span><br>
+        <strong>A:</strong> {opt_a1} | <strong>B:</strong> {opt_a2}
     </div>
     """, unsafe_allow_html=True)
-    if st.button("🪙 Flip Split Axis A", use_container_width=True):
+    if st.button("🪙 Flip Matrix One", use_container_width=True):
         with st.spinner("Spinning coin..."):
             time.sleep(0.3)
         st.session_state.flip_result = f"✨ Fate chose: **{random.choice([opt_a1, opt_a2])}**"
@@ -335,11 +357,11 @@ with col_c:
 with col_d:
     st.markdown(f"""
     <div style="background: {card_bg}; border: 1px solid {card_border}; padding: 16px; border-radius: 12px; text-align: center; margin-bottom:10px;">
-        <span style="font-weight:600; color:{accent_cyan};">Split Axis B</span><br>
-        <strong>A:</strong> {opt_b1} vs <strong>B:</strong> {opt_b2}
+        <span style="font-weight:600; color:{accent_cyan};">Dilemma Matrix Two</span><br>
+        <strong>A:</strong> {opt_b1} | <strong>B:</strong> {opt_b2}
     </div>
     """, unsafe_allow_html=True)
-    if st.button("🪙 Flip Split Axis B", use_container_width=True):
+    if st.button("🪙 Flip Matrix Two", use_container_width=True):
         with st.spinner("Spinning coin..."):
             time.sleep(0.3)
         st.session_state.flip_result = f"✨ Fate chose: **{random.choice([opt_b1, opt_b2])}**"
