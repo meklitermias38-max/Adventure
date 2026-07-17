@@ -213,7 +213,7 @@ with st.sidebar:
 # ============================================================================
 # MAIN INTERFACE
 # ============================================================================
-st.markdown('<div class="drx-title">🌅 DayRise Adventures</div>', unsafe_allow_html=True)
+st.markdown('<div class="drx-title">💫 DayRise Adventures</div>', unsafe_allow_html=True)
 st.markdown('<div class="drx-sub">Your lightweight tactical hub for routine breaking.</div>', unsafe_allow_html=True)
 
 if not st.session_state.player_name:
