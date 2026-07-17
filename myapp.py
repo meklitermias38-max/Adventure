@@ -70,7 +70,7 @@ WEEKEND_QUESTS = [
     {"title": "The Farmers Field Forager", "desc": "Visit a garden, orchard, or market and learn the origin story of one fruit or vegetable you've never asked about.", "category": "sensory", "emoji": "🌾"},
     {"title": "The Solo Picnic Architect", "desc": "Build yourself a tiny solo picnic — one snack, one drink, one blanket — and eat it somewhere with a view.", "category": "creative", "emoji": "🧺"},
     {"title": "The Skyline Sketch Session", "desc": "Find a view of a skyline, rooftops, or treeline and sketch it using the Zen Painting Deck's neon brushes.", "category": "art", "emoji": "🏙️"},
-    {"title": "The Silent Retreat Hour", "desc": "Spend one full hour in total intentional silence — no music, talking, or scrolling. Notice how your mind behaves by minute 40.", "category": "mindfulness", "byte_size": 22, "emoji": "🤫"},
+    {"title": "The Silent Retreat Hour", "desc": "Spend one full hour in total intentional silence — no music, talking, or scrolling. Notice how your mind behaves by minute 40.", "category": "mindfulness", "emoji": "🤫"},
     {"title": "The Flea Market Negotiator", "desc": "Haggle playfully for one item at a market or garage sale, even if you don't plan to buy it. Track your best offer.", "category": "social", "emoji": "🤝"},
     {"title": "The Bike Path Odyssey", "desc": "Ride a bike, scooter, or walk a path twice as long as your usual route. Reward yourself at the furthest point.", "category": "physical", "emoji": "🚲"},
     {"title": "The Waterfront Wanderer", "desc": "Find any body of water nearby — river, lake, fountain, coast — and spend ten minutes just watching it move.", "category": "mindfulness", "emoji": "🌊"},
@@ -172,7 +172,7 @@ h1, h2, h3, h4 {
     font-weight: 800;
     font-size: 1.3rem;
     color: #334155;
-    margin: 0 0 0.6rem 0;
+    margin: 24px 0 0.6rem 0;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -319,7 +319,6 @@ st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 # ============================================================================
 # BROWSER COOKIES / LOCALSTORAGE SYNC CONTROLLER
 # ============================================================================
-# Retrieves parameters passed by JavaScript back into Streamlit
 query_params = st.query_params
 
 if "player_name" not in st.session_state:
@@ -332,22 +331,17 @@ if "archive_data" not in st.session_state:
 if "persona" not in st.session_state:
     st.session_state.persona = query_params.get("saved_persona", "Urban Explorer 🌃")
 
-# JavaScript injector to update and fetch localStorage data across sessions
 def sync_browser_storage(name, persona, archive):
     archive_json = json.dumps(archive)
     js_code = f"""
     <script>
     const parentUrl = new URL(window.parent.location.href);
-    
-    // If state isn't in URL yet, read from localStorage and reload with it
     if (!parentUrl.searchParams.has("saved_name") && localStorage.getItem("drx_name")) {{
         parentUrl.searchParams.set("saved_name", localStorage.getItem("drx_name") || "");
         parentUrl.searchParams.set("saved_persona", localStorage.getItem("drx_persona") || "Urban Explorer 🌃");
         parentUrl.searchParams.set("saved_archive", localStorage.getItem("drx_archive") || "[]");
         window.parent.location.href = parentUrl.href;
     }}
-    
-    // Save current active state into localStorage
     localStorage.setItem("drx_name", "{name}");
     localStorage.setItem("drx_persona", "{persona}");
     localStorage.setItem("drx_archive", `{archive_json}`);
@@ -355,7 +349,6 @@ def sync_browser_storage(name, persona, archive):
     """
     components.html(js_code, height=0, width=0)
 
-# Run storage synchronization loop
 sync_browser_storage(st.session_state.player_name, st.session_state.persona, st.session_state.archive_data)
 
 # ============================================================================
@@ -467,7 +460,6 @@ today_str = today.isoformat()
 
 already_completed_today = any(item.get("date") == today_str for item in st.session_state.archive_data)
 
-# --- generate pool token ---
 pool_key = f"{pname}-{today_str}"
 if st.session_state.quest_pool_key != pool_key or st.session_state.current_quest is None:
     st.session_state.current_quest = random.choice(quest_pool)
@@ -522,10 +514,22 @@ with col_actions:
             st.session_state.archive_data = new_archive
             st.query_params["saved_archive"] = json.dumps(new_archive)
             st.session_state.just_completed = True
-            st.balloons()
             st.rerun()
 
+# --- CONFETTI EXPLOSION TRIGGER ---
 if st.session_state.just_completed:
+    CONFETTI_JS = """
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script>
+        window.parent.confetti({
+            particleCount: 180,
+            spread: 85,
+            origin: { y: 0.6 },
+            colors: ['#ff4b4b', '#ffbc00', '#00b4d8', '#4caf50', '#ff7a45']
+        });
+    </script>
+    """
+    components.html(CONFETTI_JS, height=0, width=0)
     st.markdown(
         """
         <div class="drx-card drx-card-gold">
@@ -776,48 +780,7 @@ elif category == "chaos":
         st.session_state.current_chaos = random.choice(CHAOS_OPTIONS)
         st.rerun()
 
-st.markdown('<hr class="drx-divider">', unsafe_allow_html=True)
-
-# ============================================================================
-# MOBILE NOTIFICATIONS
-# ============================================================================
-st.markdown('<div class="drx-section-header">🔔 Wake-Up Alerts</div>', unsafe_allow_html=True)
-
-NOTIF_HTML = """
-<div style="background:#ffffff; padding:20px; border-radius:16px; font-family:Inter,sans-serif; border:1px solid #e2e8f0;">
-  <div style="color:#475569; font-size:0.92rem; margin-bottom:14px;">
-    Enable browser notifications so DayRise can ping you directly.
-  </div>
-  <div style="display:flex; gap:12px; flex-wrap:wrap;">
-    <button onclick="requestPerm()" style="background:#00b4d8; color:#fff; border:none; padding:10px 20px; border-radius:12px; font-weight:800; cursor:pointer;">🔔 Enable Alerts</button>
-    <button onclick="sendTest()" style="background:#ffbc00; color:#fff; border:none; padding:10px 20px; border-radius:12px; font-weight:800; cursor:pointer;">📣 Send Test Notification</button>
-  </div>
-  <div id="notifStatus" style="margin-top:12px; font-size:0.85rem; color:#64748b;"></div>
-</div>
-<script>
-  function requestPerm() {
-    if (!('Notification' in window)) {{
-      document.getElementById('notifStatus').innerText = 'Not supported in this browser.';
-      return;
-    }}
-    Notification.requestPermission().then(function(perm) {{
-      document.getElementById('notifStatus').innerText = 'Permission: ' + perm;
-    }});
-  }
-  function sendTest() {{
-    if (Notification.permission === 'granted') {{
-      new Notification('🌅 DayRise Adventures', {{ body: "Today's quest is ready!" }});
-    }} else {{
-      document.getElementById('notifStatus').innerText = 'Please enable alerts first.';
-    }}
-  }
-</script>
-"""
-st.markdown('<div class="drx-module-frame">', unsafe_allow_html=True)
-components.html(NOTIF_HTML, height=180, scrolling=False)
-st.markdown('</div>', unsafe_allow_html=True)
-
 st.markdown(
-    '<div style="text-align:center; color:#94a3b8; font-size:0.8rem; margin-top:24px;">Rise. Quest. Repeat. 🌅</div>',
+    '<div style="text-align:center; color:#94a3b8; font-size:0.8rem; margin-top:40px;">Rise. Quest. Repeat. 🌅</div>',
     unsafe_allow_html=True,
 )
