@@ -9,66 +9,144 @@ from datetime import date
 # ============================================================================
 st.set_page_config(
     page_title="DayRise Adventures",
-    page_icon="🌅",
+    page_icon="💫",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 # ============================================================================
-# EXPANDED QUEST BANKS (NOW WITH SOCIAL, DANCE, ALCHEMY, & TRACKERS)
+# EXPANDED QUEST BANKS WITH BUILT-IN ASSISTANCE
 # ============================================================================
 WEEKDAY_QUESTS = [
     # --- DANCE & SPONTANEOUS MOVEMENT ---
-    {"title": "The Kitchen Counter Dance-Off", "desc": "While waiting for your morning coffee or water to boil, clear a 3-foot space and execute an uninhibited, energetic 45-second solo dance routine. Nobody is watching.", "category": "dance", "emoji": "💃"},
-    {"title": "The Secret Agent Walk", "desc": "Match your steps precisely to the rhythm of whatever upbeat track is in your head right now. Navigate your next walk like you are the lead character in a high-stakes film.", "category": "dance", "emoji": "🕺"},
-    {"title": "The Desktop Conductor", "desc": "Put on an intense classical or electronic track at your desk. Use your hands and arms to dramatically conduct the music for 60 seconds as if leading an invisible orchestra.", "category": "dance", "emoji": "🪄"},
-    {"title": "The Slow-Motion Slip", "desc": "Spend the next three minutes moving through your space at exactly 25% speed. Cross the room like you are walking on the moon or wading through deep water.", "category": "movement", "emoji": "🧑‍🚀"},
+    {
+        "title": "The Kitchen Counter Dance-Off", 
+        "desc": "While waiting for your morning coffee or water to boil, clear a 3-foot space and execute an uninhibited, energetic 45-second solo dance routine. Nobody is watching.", 
+        "category": "dance", 
+        "emoji": "💃",
+        "requires_flip": False,
+        "assistance": "💡 *Need a track? Try putting on something with a heavy, fast tempo right now before you chicken out!*"
+    },
+    {
+        "title": "The Secret Agent Walk", 
+        "desc": "Match your steps precisely to the rhythm of whatever upbeat track is in your head right now. Navigate your next walk like you are the lead character in a high-stakes film.", 
+        "category": "dance", 
+        "emoji": "🕺",
+        "requires_flip": False,
+        "assistance": "💡 *Keep your chin up, shoulders back, and time your pace precisely to the bass line.*"
+    },
+    {
+        "title": "The Desktop Conductor", 
+        "desc": "Put on an intense classical or electronic track at your desk. Use your hands and arms to dramatically conduct the music for 60 seconds as if leading an invisible orchestra.", 
+        "category": "dance", 
+        "emoji": "🪄",
+        "requires_flip": False,
+        "assistance": "💡 *Lean into the crescendo! Perfect for a quick, mid-day mental reset.*"
+    },
+    {
+        "title": "The Slow-Motion Slip", 
+        "desc": "Spend the next three minutes moving through your space at exactly 25% speed. Cross the room like you are walking on the moon or wading through deep water.", 
+        "category": "movement", 
+        "emoji": "🧑‍🚀",
+        "requires_flip": False,
+        "assistance": "💡 *Focus completely on the balance of your weight switching from heel to toe.*"
+    },
     
     # --- SOCIAL CONNECTION ---
-    {"title": "The Dynamic Drink Call", "desc": "Send a spontaneous text to a nearby friend: 'Free for a quick drink/coffee in the next 48 hours? First round is on me.' Catch up with zero fixed agendas.", "category": "social", "emoji": "🍹"},
-    {"title": "The One-Word Compliment Drop", "desc": "Give three different people a genuine one-word compliment today. Track their reactions — see who lights up the most.", "category": "social", "emoji": "💬"},
-    {"title": "The Digital Postcard", "desc": "Find a funny, beautiful, or bizarre photo in your camera roll from over a year ago. Text it to a friend out of the blue with just: 'This made me think of you today.'", "category": "social", "emoji": "📸"},
+    {
+        "title": "The Dynamic Drink Call", 
+        "desc": "Send a spontaneous text to a nearby friend: 'Free for a quick drink/coffee in the next 48 hours? First round is on me.' Catch up with zero fixed agendas.", 
+        "category": "social", 
+        "emoji": "🍹",
+        "requires_flip": False,
+        "assistance": "💡 *Stuck on who to text? Open your message app, scroll down down to the 5th person on your recent chat list, and hit them up.*"
+    },
+    {
+        "title": "The One-Word Compliment Drop", 
+        "desc": "Give three different people a genuine one-word compliment today. Track their reactions — see who lights up the most.", 
+        "category": "social", 
+        "emoji": "💬",
+        "requires_flip": False,
+        "assistance": "💡 *Words that work wonderfully: 'Radiant', 'Stellar', 'Impactful', or 'Unstoppable'.*"
+    },
+    {
+        "title": "The Digital Postcard", 
+        "desc": "Find a funny, beautiful, or bizarre photo in your camera roll from over a year ago. Text it to a friend out of the blue with just: 'This made me think of you today.'", 
+        "category": "social", 
+        "emoji": "📸",
+        "requires_flip": False,
+        "assistance": "💡 *Go to your photo app search bar, type a keyword like 'throwback' or 'trip', and pick the first nostalgic thing you see.*"
+    },
 
     # --- ROUTINES & ESCAPES ---
-    {"title": "The Reverse Commute Explorer", "desc": "Take one different turn, street, or exit on your way home today. Document one new thing you spotted.", "category": "sensory", "emoji": "🔄"},
-    {"title": "The Left-Handed Rebel", "desc": "Do one ordinary task today — brushing teeth, opening a door, writing a note — with your non-dominant hand.", "category": "chaos", "emoji": "✋"},
-    {"title": "The Emoji Only Texter", "desc": "Reply to your next three text messages using only emoji. Force yourself to be creatively precise.", "category": "creative", "emoji": "📱"},
-    {"title": "The Desk Yoga Stealth Mission", "desc": "Every hour today, execute one covert desk stretch so smooth your coworkers never suspect you're doing yoga.", "category": "physical", "emoji": "🧘"},
-    {"title": "The Secret Keyboard Agent", "desc": "For the next hour, type every message with unusual flair — sign off every message or email with a tiny secret code word.", "category": "creative", "emoji": "⌨️"},
+    {
+        "title": "The Reverse Commute Explorer", 
+        "desc": "Take one different turn, street, or exit on your way home today. Document one new thing you spotted.", 
+        "category": "sensory", 
+        "emoji": "🔄",
+        "requires_flip": False,
+        "assistance": "💡 *Look closely for dynamic architectural lines, old signposts, or unique trees you usually skip.*"
+    },
+    {
+        "title": "The Left-Handed Rebel", 
+        "desc": "Do an ordinary task right now — like unlocking a door, pouring water, or navigating your phone — using your non-dominant hand.", 
+        "category": "chaos", 
+        "emoji": "✋",
+        "requires_flip": True,
+        "assistance": "💡 *Use the Destiny Flip tool below to choose which basic task you should force your non-dominant hand to conquer first!*"
+    },
+    {
+        "title": "The Emoji Only Texter", 
+        "desc": "Reply to your next three text messages using only emoji. Force yourself to be creatively precise.", 
+        "category": "creative", 
+        "emoji": "📱",
+        "requires_flip": False,
+        "assistance": "💡 *If someone asks 'Where are you?', try 📍🏢🏃‍♂️ instead of typing.*"
+    }
 ]
 
 WEEKEND_QUESTS = [
-    # --- DANCE & MOVEMENT ---
-    {"title": "The Midnight Dance Ritual", "desc": "Turn off all the lights in a room, queue up a song with a heavy bassline, and move your body strictly based on what feels right in the pitch dark.", "category": "dance", "emoji": "🌌"},
-    {"title": "The Freeze-Frame Rhythm", "desc": "Play an upbeat track. Every time you hit pause completely at random, you must hold whatever dramatic or expressive pose you're in for 5 full seconds without moving.", "category": "dance", "emoji": "⏸️"},
-    
-    # --- CULINARY ALCHEMY ---
-    {"title": "The Flavor Alchemist", "desc": "Bake or cook something simple today, but consciously swap out one foundational sugar, spice, or base liquid for a dynamic alternative you have in your cupboards.", "category": "creative", "emoji": "🍪"},
-    {"title": "The Single-Spice Takeover", "desc": "Pick one spice in your kitchen you rarely touch. Cook your next simple meal or snack built entirely around making that specific flavor the absolute star of the show.", "category": "creative", "emoji": "🌶️"},
-
-    # --- EXPLORATION & OBSERVATION ---
-    {"title": "The Typography Tracker", "desc": "Go on a 10-minute neighborhood walk looking only at signs and storefront lettering. Identify the most beautiful piece of text and the absolute ugliest.", "category": "art", "emoji": "🔤"},
-    {"title": "The Soundscape Iso-Check", "desc": "Sit somewhere outside for 3 minutes with your eyes closed. Isolate the single highest-pitched sound and the lowest-frequency sound around you. Treat it like a song composition.", "category": "sensory", "emoji": "🎧"},
-    {"title": "The Coin Toss Explorer", "desc": "At every unplanned fork in your day, let a quick coin flip choose your direction. Follow it for at least three decisions.", "category": "chaos", "emoji": "🪙"},
-    {"title": "The Neighborhood Grid-Run", "desc": "Pick a direction and walk exactly six blocks in a square pattern, turning only right. Map what you discover.", "category": "physical", "emoji": "🗺️"},
-    {"title": "The Horizon Hunter", "desc": "Find the highest accessible point near you — a hill, rooftop, parking garage — and watch the horizon for ten full minutes, no phone.", "category": "physical", "emoji": "🌄"},
+    {
+        "title": "The Midnight Dance Ritual", 
+        "desc": "Turn off all the lights in a room, queue up a song with a heavy bassline, and move your body strictly based on what feels right in the pitch dark.", 
+        "category": "dance", 
+        "emoji": "🌌",
+        "requires_flip": False,
+        "assistance": "💡 *Close your eyes even if it's already dark. Let go of what you look like entirely.*"
+    },
+    {
+        "title": "The Flavor Alchemist", 
+        "desc": "Bake or cook something simple today, but consciously swap out one foundational sugar, spice, or base liquid for a dynamic alternative you have in your cupboards.", 
+        "category": "creative", 
+        "emoji": "🍪",
+        "requires_flip": True,
+        "assistance": "💡 *Unsure which direction to head? Use the Destiny Flip below to choose between a bright flavor change or a texture swap.*"
+    },
+    {
+        "title": "The Coin Toss Explorer", 
+        "desc": "At every unplanned fork in your day, let a quick coin flip choose your direction. Follow it for at least three decisions.", 
+        "category": "chaos", 
+        "emoji": "🪙",
+        "requires_flip": True,
+        "assistance": "💡 *The Destiny Flip tool below is active and ready to make your upcoming navigation decisions.*"
+    },
+    {
+        "title": "The Neighborhood Grid-Run", 
+        "desc": "Pick a direction and walk exactly six blocks in a square pattern, turning only right. Map what you discover.", 
+        "category": "physical", 
+        "emoji": "🗺️",
+        "requires_flip": True,
+        "assistance": "💡 *Flip below to decide if you begin your square walk by stepping Left or Right out your front door.*"
+    }
 ]
 
-VOCAB_BANK = [
-    {"language": "Spanish", "flag": "🇪🇸", "word": "Duende", "meaning": "A heightened state of raw emotion and authenticity, especially felt during art or performance.", "pronunciation": "dwen-deh"},
-    {"language": "Amharic", "flag": "🇪🇹", "word": "Buna", "meaning": "Coffee — but truly a ceremony of slowing down and connecting with the people around you.", "pronunciation": "boo-nah"},
-    {"language": "Japanese", "flag": "🇯🇵", "word": "Komorebi", "meaning": "The dappled sunlight that filters through leaves in a forest canopy.", "pronunciation": "koh-moh-reh-bee"},
-]
-
-# --- EXTENDED DO THIS OR DO THAT CHOICES ---
+# --- TRACKED DILEMMA PAIRS MAPPED TO MATCHING TASKS ---
 CHAOS_OPTIONS = [
     ("Turn Left 🪟", "Turn Right 🧱"),
-    ("Order something new 🍛", "Stick to the classics ☕"),
-    ("Take the stairs 🪜", "Take the elevator 🛗"),
     ("Try a local spiced tea/herbal infusion 🫖", "Stick to default black coffee/espresso ☕"),
+    ("Use phone with left hand 📱", "Write notes with left hand ✍️"),
+    ("Order something brand new 🍛", "Stick to your classic favorite ☕"),
     ("Listen to acoustic instrumentals 🎻", "Listen to high-tempo electronic bass 🎛️"),
-    ("Read a physical book page 📖", "Listen to a random audio clip/podcast 🎙️"),
-    ("Buy the ingredient with vibrant packaging 🎨", "Buy the most plain, generic version 📦"),
 ]
 
 PERSONAS = ["Urban Explorer 🌃", "Chaos Monk 🧘", "Creative Renegade 🎨"]
@@ -88,16 +166,15 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; background-color:
 .drx-card-coral { border-top: 5px solid #ff4b4b; }
 .drx-tag { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 12px; background: #f1f5f9; color: #475569; }
 .drx-quest-title { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 1.35rem; margin-bottom: 8px; }
+.drx-assistance { background-color: #f8fafc; padding: 12px; border-left: 4px solid #64748b; border-radius: 4px; font-size: 0.95rem; margin-top: 14px; color: #475569; }
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================================================
 # STATE TRACKING
 # ============================================================================
-query_params = st.query_params
-
 if "player_name" not in st.session_state:
-    st.session_state.player_name = query_params.get("saved_name", "")
+    st.session_state.player_name = ""
 if "archive_data" not in st.session_state:
     st.session_state.archive_data = []
 if "persona" not in st.session_state:
@@ -106,8 +183,6 @@ if "quest_revealed" not in st.session_state:
     st.session_state.quest_revealed = False
 if "current_quest" not in st.session_state:
     st.session_state.current_quest = None
-if "current_vocab" not in st.session_state:
-    st.session_state.current_vocab = random.choice(VOCAB_BANK)
 if "current_chaos" not in st.session_state:
     st.session_state.current_chaos = random.choice(CHAOS_OPTIONS)
 
@@ -155,8 +230,6 @@ quest = st.session_state.current_quest
 if quest["category"] in ["dance", "movement"]:
     card_theme = "drx-card-purple"
 elif quest["category"] == "social":
-    card_theme = "drx-card-gold" if "drx-card-gold" in locals() else "drx-card-coral"
-elif is_weekend:
     card_theme = "drx-card-coral"
 else:
     card_theme = "drx-card-cyan"
@@ -175,8 +248,8 @@ if not st.session_state.quest_revealed:
     
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🎲 ROLL / TAP FOR TODAY'S QUEST", use_container_width=True):
-        with st.spinner("Rolling the dice... ⚁ ⚅ ⚃"):
-            time.sleep(0.8)
+        with st.spinner("Rolling the dice..."):
+            time.sleep(0.6)
         st.session_state.quest_revealed = True
         st.rerun()
 
@@ -186,44 +259,52 @@ else:
     <div class="drx-card {card_theme}">
         <span class="drx-tag">{quest['category'].upper()} MODE</span>
         <div class="drx-quest-title">{quest['emoji']} {quest['title']}</div>
-        <p style="color: #475569; font-size: 1.05rem; line-height: 1.6;">{quest['desc']}</p>
+        <p style="color: #475569; font-size: 1.05rem; line-height: 1.6; margin-bottom: 0;">{quest['desc']}</p>
     </div>
     """, unsafe_allow_html=True)
     
+    # Inject unique task help card if it exists
+    if "assistance" in quest:
+        st.markdown(f'<div class="drx-assistance">{quest["assistance"]}</div>', unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
     col_a, col_b = st.columns(2)
     with col_a:
         if st.button("🏁 Log Quest as Finished", use_container_width=True):
             if not any(item['title'] == quest['title'] for item in st.session_state.archive_data):
                 st.session_state.archive_data.insert(0, {"title": quest["title"], "date": today.isoformat()})
-            st.success("Adventure logged into sidebar profile memory!")
+            st.balloons()  # CONFETTI POPPER CELEBRATION MOVED HERE UPON COMPLETION!
+            st.success("Boom! Adventure completed and logged.")
     with col_b:
         if st.button("🔀 Alternate Reroll", use_container_width=True):
             st.session_state.current_quest = random.choice(quest_pool)
+            st.session_state.current_chaos = random.choice(CHAOS_OPTIONS)
             st.rerun()
 
-st.markdown("---")
+    # ============================================================================
+    # DYNAMIC MODULE: THE DESTINY FLIP (ONLY SHOWS FOR MATCHING TASKS)
+    # ============================================================================
+    if quest.get("requires_flip", False):
+        st.markdown("---")
+        st.markdown("### 🪙 Connected Tool: The Destiny Flip")
+        opt1, opt2 = st.session_state.current_chaos
 
-# ============================================================================
-# COMPANION MODULES (DO THIS OR DO THAT)
-# ============================================================================
-st.markdown("### 🪙 Context Tool: The Destiny Flip")
-opt1, opt2 = st.session_state.current_chaos
+        st.markdown(f"""
+        <div style="background: white; border: 1px solid #e2e8f0; padding: 22px; border-radius: 12px; text-align: center;">
+            <div style="display: flex; justify-content: space-around; font-weight: 600; font-size: 1.1rem;">
+                <span style="color: #ff4b4b;">Option A: {opt1}</span>
+                <span style="color: #00b4d8;">Option B: {opt2}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-st.markdown(f"""
-<div style="background: white; border: 1px solid #e2e8f0; padding: 22px; border-radius: 12px; text-align: center;">
-    <div style="display: flex; justify-content: space-around; font-weight: 600; font-size: 1.1rem;">
-        <span style="color: #ff4b4b;">Option A: {opt1}</span>
-        <span style="color: #00b4d8;">Option B: {opt2}</span>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-st.markdown("<br>", unsafe_allow_html=True)
-if st.button("🪙 Flip to Decide Between This or That", use_container_width=True):
-    chosen = random.choice([opt1, opt2])
-    st.balloons()
-    st.info(f"✨ Fate chose: **{chosen}**")
-
-if st.button("🔄 Swap Dilemma Pool Options", use_container_width=True):
-    st.session_state.current_chaos = random.choice(CHAOS_OPTIONS)
-    st.rerun()
+        st.markdown("<br>", unsafe_allow_html=True)
+        col_c, col_d = st.columns(2)
+        with col_c:
+            if st.button("🪙 Flip to Decide", use_container_width=True):
+                chosen = random.choice([opt1, opt2])
+                st.info(f"✨ Fate chose: **{chosen}**")
+        with col_d:
+            if st.button("🔄 Swap Dilemma Pool", use_container_width=True):
+                st.session_state.current_chaos = random.choice(CHAOS_OPTIONS)
+                st.rerun()
