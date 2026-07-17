@@ -2,8 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import random
 import json
-import os
-from datetime import datetime, date, timedelta
+from datetime import date, timedelta
 
 # ============================================================================
 # PAGE CONFIG
@@ -14,53 +13,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
-DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dayrise_data.json")
-
-# ============================================================================
-# PERSISTENCE LAYER
-# ============================================================================
-def load_all_data():
-    if os.path.exists(DATA_FILE):
-        try:
-            with open(DATA_FILE, "r") as f:
-                return json.load(f)
-        except Exception:
-            return {}
-    return {}
-
-
-def save_all_data(data):
-    try:
-        with open(DATA_FILE, "w") as f:
-            json.dump(data, f, indent=2)
-    except Exception:
-        pass
-
-
-def default_player(persona="Urban Explorer 🌃"):
-    return {
-        "persona": persona,
-        "xp": 0,
-        "level": 1,
-        "streak": 0,
-        "last_completed_date": None,
-        "last_seen_date": None,
-        "archive": [],
-        "total_completed": 0,
-    }
-
-
-def get_level_info(xp):
-    level = min(10, 1 + xp // 100)
-    if level >= 10:
-        progress_xp = 100
-        percent = 100
-    else:
-        progress_xp = xp - (level - 1) * 100
-        percent = int((progress_xp / 100) * 100)
-    return level, progress_xp, percent
-
 
 # ============================================================================
 # QUEST BANKS
@@ -118,7 +70,7 @@ WEEKEND_QUESTS = [
     {"title": "The Farmers Field Forager", "desc": "Visit a garden, orchard, or market and learn the origin story of one fruit or vegetable you've never asked about.", "category": "sensory", "emoji": "🌾"},
     {"title": "The Solo Picnic Architect", "desc": "Build yourself a tiny solo picnic — one snack, one drink, one blanket — and eat it somewhere with a view.", "category": "creative", "emoji": "🧺"},
     {"title": "The Skyline Sketch Session", "desc": "Find a view of a skyline, rooftops, or treeline and sketch it using the Zen Painting Deck's neon brushes.", "category": "art", "emoji": "🏙️"},
-    {"title": "The Silent Retreat Hour", "desc": "Spend one full hour in total intentional silence — no music, talking, or scrolling. Notice how your mind behaves by minute 40.", "category": "mindfulness", "emoji": "🤫"},
+    {"title": "The Silent Retreat Hour", "desc": "Spend one full hour in total intentional silence — no music, talking, or scrolling. Notice how your mind behaves by minute 40.", "category": "mindfulness", "byte_size": 22, "emoji": "🤫"},
     {"title": "The Flea Market Negotiator", "desc": "Haggle playfully for one item at a market or garage sale, even if you don't plan to buy it. Track your best offer.", "category": "social", "emoji": "🤝"},
     {"title": "The Bike Path Odyssey", "desc": "Ride a bike, scooter, or walk a path twice as long as your usual route. Reward yourself at the furthest point.", "category": "physical", "emoji": "🚲"},
     {"title": "The Waterfront Wanderer", "desc": "Find any body of water nearby — river, lake, fountain, coast — and spend ten minutes just watching it move.", "category": "mindfulness", "emoji": "🌊"},
@@ -165,7 +117,7 @@ PERSONAS = [
 ]
 
 # ============================================================================
-# CUSTOM CSS — THE VISUAL SHELL
+# LIGHT AESTHETICS — VISUAL SHELL
 # ============================================================================
 CUSTOM_CSS = """
 <style>
@@ -175,13 +127,12 @@ html, body, [class*="css"] {
     font-family: 'Inter', 'Poppins', sans-serif;
 }
 
-/* ---------- APP BACKGROUND ---------- */
+/* ---------- LIGHT MODE APP BACKGROUND ---------- */
 .stApp {
-    background: radial-gradient(circle at 15% 0%, rgba(255,75,75,0.08) 0%, transparent 45%),
-                radial-gradient(circle at 85% 15%, rgba(0,240,255,0.08) 0%, transparent 45%),
-                radial-gradient(circle at 50% 100%, rgba(255,215,0,0.05) 0%, transparent 50%),
-                #0d1117;
-    color: #e6edf3;
+    background: radial-gradient(circle at 15% 0%, rgba(255,75,75,0.05) 0%, transparent 50%),
+                radial-gradient(circle at 85% 15%, rgba(0,210,255,0.05) 0%, transparent 50%),
+                #f8fafc;
+    color: #1e293b;
 }
 
 #MainMenu {visibility: hidden;}
@@ -193,13 +144,14 @@ h1, h2, h3, h4 {
     font-family: 'Poppins', sans-serif !important;
     font-weight: 800 !important;
     letter-spacing: -0.5px;
+    color: #0f172a !important;
 }
 
 .drx-hero-title {
     font-family: 'Poppins', sans-serif;
     font-weight: 900;
     font-size: 3rem;
-    background: linear-gradient(90deg, #ff4b4b 0%, #ffd700 50%, #00f0ff 100%);
+    background: linear-gradient(90deg, #ff4b4b 0%, #ff9d00 50%, #00b4d8 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -208,7 +160,7 @@ h1, h2, h3, h4 {
 }
 
 .drx-hero-sub {
-    color: #8b949e;
+    color: #64748b;
     font-size: 1.05rem;
     font-weight: 500;
     margin-top: 4px;
@@ -218,75 +170,60 @@ h1, h2, h3, h4 {
 .drx-section-header {
     font-family: 'Poppins', sans-serif;
     font-weight: 800;
-    font-size: 1.4rem;
-    color: #e6edf3;
+    font-size: 1.3rem;
+    color: #334155;
     margin: 0 0 0.6rem 0;
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-/* ---------- GLASS ADVENTURE CARDS ---------- */
+/* ---------- BRIGHT ADVENTURE CARDS ---------- */
 .drx-card {
-    background: rgba(22, 27, 34, 0.75);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
     border-radius: 20px;
-    padding: 28px 30px;
+    padding: 24px 28px;
     margin-bottom: 22px;
     position: relative;
     overflow: hidden;
-    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .drx-card:hover {
-    transform: translateY(-3px);
-    border-color: rgba(255,255,255,0.16);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.08);
 }
 
-.drx-card-coral {
-    box-shadow: 0 0 0px rgba(255,75,75,0.0), 0 8px 32px rgba(0,0,0,0.35);
-    border-top: 2px solid rgba(255,75,75,0.55);
-}
-.drx-card-coral:hover { box-shadow: 0 0 40px rgba(255,75,75,0.28), 0 8px 32px rgba(0,0,0,0.4); }
-
-.drx-card-cyan {
-    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
-    border-top: 2px solid rgba(0,240,255,0.55);
-}
-.drx-card-cyan:hover { box-shadow: 0 0 40px rgba(0,240,255,0.28), 0 8px 32px rgba(0,0,0,0.4); }
-
-.drx-card-gold {
-    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
-    border-top: 2px solid rgba(255,215,0,0.55);
-}
-.drx-card-gold:hover { box-shadow: 0 0 40px rgba(255,215,0,0.28), 0 8px 32px rgba(0,0,0,0.4); }
+.drx-card-coral { border-top: 4px solid #ff4b4b; }
+.drx-card-cyan { border-top: 4px solid #00b4d8; }
+.drx-card-gold { border-top: 4px solid #ffbc00; }
 
 .drx-tag {
     display: inline-block;
-    padding: 5px 14px;
+    padding: 4px 12px;
     border-radius: 999px;
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.6px;
     text-transform: uppercase;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
 }
-.drx-tag-weekday { background: rgba(0,240,255,0.14); color: #00f0ff; border: 1px solid rgba(0,240,255,0.4); }
-.drx-tag-weekend { background: rgba(255,75,75,0.14); color: #ff8080; border: 1px solid rgba(255,75,75,0.4); }
+.drx-tag-weekday { background: #e0f7fa; color: #00838f; }
+.drx-tag-weekend { background: #ffebee; color: #c62828; }
 
 .drx-quest-title {
     font-family: 'Poppins', sans-serif;
     font-weight: 800;
-    font-size: 1.65rem;
-    margin-bottom: 10px;
-    color: #f0f6fc;
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+    color: #1e293b;
 }
 
 .drx-quest-desc {
-    color: #c9d1d9;
-    font-size: 1.02rem;
-    line-height: 1.65;
+    color: #475569;
+    font-size: 1rem;
+    line-height: 1.6;
 }
 
 /* ---------- BUTTONS ---------- */
@@ -294,32 +231,24 @@ div.stButton > button {
     background: linear-gradient(135deg, #ff4b4b 0%, #ff7a45 100%);
     color: white;
     border: none;
-    border-radius: 14px;
-    padding: 0.65rem 1.4rem;
+    border-radius: 12px;
+    padding: 0.6rem 1.2rem;
     font-weight: 700;
     font-size: 0.95rem;
-    letter-spacing: 0.3px;
-    box-shadow: 0 4px 14px rgba(255,75,75,0.35);
-    transition: all 0.18s ease;
+    box-shadow: 0 4px 12px rgba(255,75,75,0.2);
+    transition: all 0.15s ease;
     width: 100%;
 }
 div.stButton > button:hover {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 26px rgba(255,75,75,0.55);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(255,75,75,0.35);
     color: white;
-    border: none;
-}
-div.stButton > button:active {
-    transform: translateY(0px) scale(0.98);
-    box-shadow: 0 2px 8px rgba(255,75,75,0.4);
 }
 
-/* secondary-styled buttons via key prefix trick handled globally, all buttons share base gradient */
-
-/* ---------- SIDEBAR: COMMAND CENTER ---------- */
+/* ---------- SIDEBAR ---------- */
 section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #10151c 0%, #0d1117 100%);
-    border-right: 1px solid rgba(0,240,255,0.15);
+    background: #ffffff;
+    border-right: 1px solid #e2e8f0;
 }
 section[data-testid="stSidebar"] .block-container {
     padding-top: 1.4rem;
@@ -328,14 +257,13 @@ section[data-testid="stSidebar"] .block-container {
 .drx-cc-header {
     font-family: 'Poppins', sans-serif;
     font-weight: 900;
-    font-size: 1.25rem;
-    color: #00f0ff;
-    text-shadow: 0 0 18px rgba(0,240,255,0.6);
+    font-size: 1.2rem;
+    color: #0f172a;
     margin-bottom: 2px;
 }
 .drx-cc-sub {
-    color: #6e7681;
-    font-size: 0.78rem;
+    color: #94a3b8;
+    font-size: 0.75rem;
     font-weight: 600;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -343,136 +271,45 @@ section[data-testid="stSidebar"] .block-container {
 }
 
 .drx-profile-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
     border-radius: 16px;
-    padding: 18px;
+    padding: 16px;
     margin-bottom: 16px;
 }
 
-.drx-level-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #ffd700, #ff9d00);
-    color: #0d1117;
-    font-weight: 900;
-    font-size: 1.1rem;
-    box-shadow: 0 0 20px rgba(255,215,0,0.5);
-}
-
-.xp-bar-container {
-    width: 100%;
-    height: 14px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 999px;
-    overflow: hidden;
-    margin-top: 8px;
-    border: 1px solid rgba(255,255,255,0.08);
-}
-.xp-bar-fill {
-    height: 100%;
-    border-radius: 999px;
-    background: linear-gradient(90deg, #00f0ff, #ffd700);
-    box-shadow: 0 0 12px rgba(0,240,255,0.7);
-    transition: width 0.6s ease;
-}
-
-.drx-streak-box {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: rgba(255,75,75,0.08);
-    border: 1px solid rgba(255,75,75,0.3);
-    border-radius: 14px;
-    padding: 12px 14px;
-    margin-top: 10px;
-}
-.drx-streak-fire {
-    font-size: 1.8rem;
-    animation: flicker 1.4s infinite alternate;
-}
-@keyframes flicker {
-    0%   { transform: scale(1) rotate(-2deg); filter: drop-shadow(0 0 4px #ff4b4b); }
-    50%  { transform: scale(1.12) rotate(2deg); filter: drop-shadow(0 0 12px #ffd700); }
-    100% { transform: scale(1) rotate(-1deg); filter: drop-shadow(0 0 6px #ff4b4b); }
-}
-.drx-streak-num {
-    font-family: 'Poppins', sans-serif;
-    font-weight: 800;
-    font-size: 1.15rem;
-    color: #ffb3b3;
-}
-.drx-streak-label {
-    color: #8b949e;
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
 .drx-archive-item {
-    background: rgba(255,255,255,0.03);
-    border-left: 3px solid #00f0ff;
-    border-radius: 8px;
-    padding: 10px 12px;
+    background: #f8fafc;
+    border-left: 3px solid #00b4d8;
+    border-radius: 6px;
+    padding: 8px 12px;
     margin-bottom: 8px;
+    border-top: 1px solid #e2e8f0;
+    border-right: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
 }
 .drx-archive-title {
     font-weight: 700;
     font-size: 0.85rem;
-    color: #e6edf3;
+    color: #334155;
 }
 .drx-archive-date {
     font-size: 0.7rem;
-    color: #6e7681;
+    color: #64748b;
 }
 
-/* ---------- SCROLLBAR ---------- */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: #0d1117; }
-::-webkit-scrollbar-thumb { background: #30363d; border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: #00f0ff; }
-
-/* ---------- MODULE FRAME (used around components.html iframes) ---------- */
 .drx-module-frame {
     border-radius: 18px;
-    border: 1px solid rgba(0,240,255,0.25);
-    box-shadow: 0 0 30px rgba(0,240,255,0.12);
+    border: 1px solid #e2e8f0;
     overflow: hidden;
     margin-top: 6px;
-}
-
-/* ---------- METRIC PILLS ---------- */
-.drx-pill-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
-.drx-pill {
-    flex: 1;
-    min-width: 90px;
-    text-align: center;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    padding: 10px 6px;
-}
-.drx-pill-value {
-    font-family: 'Poppins', sans-serif;
-    font-weight: 800;
-    font-size: 1.2rem;
-    color: #ffd700;
-}
-.drx-pill-label {
-    font-size: 0.65rem;
-    color: #8b949e;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    background: #ffffff;
 }
 
 hr.drx-divider {
     border: none;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    background: #e2e8f0;
     margin: 18px 0;
 }
 </style>
@@ -480,12 +317,50 @@ hr.drx-divider {
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 # ============================================================================
-# SESSION STATE INITIALIZATION
+# BROWSER COOKIES / LOCALSTORAGE SYNC CONTROLLER
 # ============================================================================
-if "all_data" not in st.session_state:
-    st.session_state.all_data = load_all_data()
+# Retrieves parameters passed by JavaScript back into Streamlit
+query_params = st.query_params
+
 if "player_name" not in st.session_state:
-    st.session_state.player_name = ""
+    st.session_state.player_name = query_params.get("saved_name", "")
+if "archive_data" not in st.session_state:
+    try:
+        st.session_state.archive_data = json.loads(query_params.get("saved_archive", "[]"))
+    except:
+        st.session_state.archive_data = []
+if "persona" not in st.session_state:
+    st.session_state.persona = query_params.get("saved_persona", "Urban Explorer 🌃")
+
+# JavaScript injector to update and fetch localStorage data across sessions
+def sync_browser_storage(name, persona, archive):
+    archive_json = json.dumps(archive)
+    js_code = f"""
+    <script>
+    const parentUrl = new URL(window.parent.location.href);
+    
+    // If state isn't in URL yet, read from localStorage and reload with it
+    if (!parentUrl.searchParams.has("saved_name") && localStorage.getItem("drx_name")) {{
+        parentUrl.searchParams.set("saved_name", localStorage.getItem("drx_name") || "");
+        parentUrl.searchParams.set("saved_persona", localStorage.getItem("drx_persona") || "Urban Explorer 🌃");
+        parentUrl.searchParams.set("saved_archive", localStorage.getItem("drx_archive") || "[]");
+        window.parent.location.href = parentUrl.href;
+    }}
+    
+    // Save current active state into localStorage
+    localStorage.setItem("drx_name", "{name}");
+    localStorage.setItem("drx_persona", "{persona}");
+    localStorage.setItem("drx_archive", `{archive_json}`);
+    </script>
+    """
+    components.html(js_code, height=0, width=0)
+
+# Run storage synchronization loop
+sync_browser_storage(st.session_state.player_name, st.session_state.persona, st.session_state.archive_data)
+
+# ============================================================================
+# APP STATE INITIALIZATION
+# ============================================================================
 if "current_quest" not in st.session_state:
     st.session_state.current_quest = None
 if "quest_pool_key" not in st.session_state:
@@ -506,83 +381,45 @@ day_type_label = "WEEKEND EXPEDITION" if is_weekend else "WEEKDAY MICRO-ESCAPE"
 # SIDEBAR — PLAYER COMMAND CENTER
 # ============================================================================
 with st.sidebar:
-    st.markdown('<div class="drx-cc-header">⚡ COMMAND CENTER</div>', unsafe_allow_html=True)
-    st.markdown('<div class="drx-cc-sub">Player Profile Dashboard</div>', unsafe_allow_html=True)
+    st.markdown('<div class="drx-cc-header">☕ FREE SPACE</div>', unsafe_allow_html=True)
+    st.markdown('<div class="drx-cc-sub">Your Mindful Dashboard</div>', unsafe_allow_html=True)
 
-    name_input = st.text_input("Player Name", value=st.session_state.player_name, placeholder="Enter your name...")
+    name_input = st.text_input("Adventurer Name", value=st.session_state.player_name, placeholder="Enter your name to join...")
     if name_input != st.session_state.player_name:
         st.session_state.player_name = name_input
-        st.session_state.current_quest = None
+        st.query_params["saved_name"] = name_input
+        st.rerun()
 
     if st.session_state.player_name:
         pname = st.session_state.player_name.strip()
-        if pname not in st.session_state.all_data:
-            st.session_state.all_data[pname] = default_player()
-            save_all_data(st.session_state.all_data)
 
-        player = st.session_state.all_data[pname]
-
-        persona = st.selectbox(
-            "Specialist Persona",
+        selected_persona = st.selectbox(
+            "Current Persona",
             PERSONAS,
-            index=PERSONAS.index(player["persona"]) if player.get("persona") in PERSONAS else 0,
+            index=PERSONAS.index(st.session_state.persona) if st.session_state.persona in PERSONAS else 0,
         )
-        if persona != player.get("persona"):
-            player["persona"] = persona
-            save_all_data(st.session_state.all_data)
-
-        level, progress_xp, percent = get_level_info(player["xp"])
+        if selected_persona != st.session_state.persona:
+            st.session_state.persona = selected_persona
+            st.query_params["saved_persona"] = selected_persona
+            st.rerun()
 
         st.markdown('<div class="drx-profile-card">', unsafe_allow_html=True)
         profile_html = (
             '<div style="display:flex; align-items:center; gap:12px;">'
-            '<div class="drx-level-badge">LV__LEVEL__</div>'
             '<div>'
-            '<div style="font-weight:800; font-size:1.05rem; color:#f0f6fc;">__NAME__</div>'
-            '<div style="font-size:0.78rem; color:#8b949e;">__PERSONA__</div>'
+            '<div style="font-weight:800; font-size:1.1rem; color:#0f172a;">__NAME__</div>'
+            '<div style="font-size:0.8rem; color:#64748b;">__PERSONA__</div>'
             '</div>'
             '</div>'
-            '<div class="xp-bar-container"><div class="xp-bar-fill" style="width:__PERCENT__%;"></div></div>'
-            '<div style="display:flex; justify-content:space-between; margin-top:4px;">'
-            '<span style="font-size:0.72rem; color:#6e7681;">__PROGRESS__ / 100 XP</span>'
-            '<span style="font-size:0.72rem; color:#6e7681;">Level __LEVEL__ / 10</span>'
-            '</div>'
-        )
-        profile_html = (
-            profile_html
-            .replace("__LEVEL__", str(level))
-            .replace("__NAME__", pname)
-            .replace("__PERSONA__", player["persona"])
-            .replace("__PERCENT__", str(percent))
-            .replace("__PROGRESS__", str(progress_xp if level < 10 else 100))
-        )
+        ).replace("__NAME__", pname).replace("__PERSONA__", st.session_state.persona)
         st.markdown(profile_html, unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
-        streak_html = (
-            '<div class="drx-streak-box">'
-            '<div class="drx-streak-fire">🔥</div>'
-            '<div>'
-            '<div class="drx-streak-num">__STREAK__ Days</div>'
-            '<div class="drx-streak-label">Active Streak</div>'
-            '</div>'
-            '</div>'
-        ).replace("__STREAK__", str(player["streak"]))
-        st.markdown(streak_html, unsafe_allow_html=True)
-
-        pill_html = (
-            '<div class="drx-pill-row">'
-            '<div class="drx-pill"><div class="drx-pill-value">__XP__</div><div class="drx-pill-label">Total XP</div></div>'
-            '<div class="drx-pill"><div class="drx-pill-value">__DONE__</div><div class="drx-pill-label">Quests Done</div></div>'
-            '</div>'
-        ).replace("__XP__", str(player["xp"])).replace("__DONE__", str(player["total_completed"]))
-        st.markdown(pill_html, unsafe_allow_html=True)
-
         st.markdown('<hr class="drx-divider">', unsafe_allow_html=True)
-        st.markdown('<div class="drx-section-header">📜 Archive of Glory</div>', unsafe_allow_html=True)
+        st.markdown('<div class="drx-section-header">📜 Completed Quests</div>', unsafe_allow_html=True)
 
-        if player["archive"]:
-            for entry in player["archive"][:12]:
+        if st.session_state.archive_data:
+            for entry in st.session_state.archive_data[:12]:
                 item_html = (
                     '<div class="drx-archive-item">'
                     '<div class="drx-archive-title">__EMOJI__ __TITLE__</div>'
@@ -595,18 +432,18 @@ with st.sidebar:
                 st.markdown(item_html, unsafe_allow_html=True)
         else:
             st.markdown(
-                '<div style="color:#6e7681; font-size:0.85rem; font-style:italic;">No quests logged yet. Complete your first adventure to begin your archive!</div>',
+                '<div style="color:#94a3b8; font-size:0.85rem; font-style:italic;">A clean slate. Finish an adventure to add it here.</div>',
                 unsafe_allow_html=True,
             )
     else:
-        st.info("👋 Enter your name above to activate your Command Center.")
+        st.info("👋 Type your name above to setup your persistent dashboard space.")
 
 # ============================================================================
 # MAIN CONTENT
 # ============================================================================
 st.markdown('<div class="drx-hero-title">🌅 DayRise Adventures</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="drx-hero-sub">Turn every ordinary day into a quest worth logging.</div>',
+    '<div class="drx-hero-sub">Turn every ordinary day into a quest worth logging. No scores, just presence.</div>',
     unsafe_allow_html=True,
 )
 
@@ -614,11 +451,10 @@ if not st.session_state.player_name:
     st.markdown(
         """
         <div class="drx-card drx-card-cyan">
-            <div class="drx-quest-title">🎮 Welcome, Adventurer</div>
+            <div class="drx-quest-title">👋 Welcome to DayRise</div>
             <div class="drx-quest-desc">
-                Set your name and persona in the Command Center on the left to unlock today's quest,
-                start earning XP, and begin your Archive of Glory. Every day brings a brand new
-                micro-adventure — weekdays are fast escapes, weekends are wild expeditions.
+                Set your name in the sidebar to reveal today's quest. 
+                Everything is kept inside your local browser memory, making it your private personal sanctuary.
             </div>
         </div>
         """,
@@ -627,11 +463,11 @@ if not st.session_state.player_name:
     st.stop()
 
 pname = st.session_state.player_name.strip()
-player = st.session_state.all_data[pname]
 today_str = today.isoformat()
-already_completed_today = player.get("last_completed_date") == today_str
 
-# --- generate / persist today's quest in session ---
+already_completed_today = any(item.get("date") == today_str for item in st.session_state.archive_data)
+
+# --- generate pool token ---
 pool_key = f"{pname}-{today_str}"
 if st.session_state.quest_pool_key != pool_key or st.session_state.current_quest is None:
     st.session_state.current_quest = random.choice(quest_pool)
@@ -666,34 +502,25 @@ with col_main:
 with col_actions:
     if st.button("🔀 Reroll Quest"):
         new_quest = random.choice(quest_pool)
-        tries = 0
-        while new_quest["title"] == quest["title"] and tries < 8:
+        while new_quest["title"] == quest["title"]:
             new_quest = random.choice(quest_pool)
-            tries += 1
         st.session_state.current_quest = new_quest
         st.rerun()
 
     if already_completed_today:
-        st.success("✅ Completed today!")
+        st.success("✅ Logged for today!")
     else:
-        if st.button("🏁 Complete Quest (+25 XP)"):
-            yesterday_str = (today - timedelta(days=1)).isoformat()
-            if player.get("last_completed_date") == yesterday_str:
-                player["streak"] = player.get("streak", 0) + 1
-            else:
-                player["streak"] = 1
-            player["last_completed_date"] = today_str
-            player["xp"] = player.get("xp", 0) + 25
-            player["level"] = get_level_info(player["xp"])[0]
-            player["total_completed"] = player.get("total_completed", 0) + 1
-            player.setdefault("archive", []).insert(0, {
+        if st.button("🏁 Log Complete"):
+            new_archive = list(st.session_state.archive_data)
+            new_archive.insert(0, {
                 "date": today_str,
                 "title": quest["title"],
                 "emoji": quest["emoji"],
                 "category": quest["category"],
                 "day_type": "Weekend" if is_weekend else "Weekday",
             })
-            save_all_data(st.session_state.all_data)
+            st.session_state.archive_data = new_archive
+            st.query_params["saved_archive"] = json.dumps(new_archive)
             st.session_state.just_completed = True
             st.balloons()
             st.rerun()
@@ -702,9 +529,8 @@ if st.session_state.just_completed:
     st.markdown(
         """
         <div class="drx-card drx-card-gold">
-            <div class="drx-quest-title">🏆 Quest Complete!</div>
-            <div class="drx-quest-desc">+25 XP banked, your streak is glowing, and your Archive of Glory just grew.
-            Come back tomorrow for a brand new adventure.</div>
+            <div class="drx-quest-title">🏆 Adventure Logged!</div>
+            <div class="drx-quest-desc">This task has been recorded into your local browser log. See you tomorrow!</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -714,7 +540,7 @@ if st.session_state.just_completed:
 st.markdown('<hr class="drx-divider">', unsafe_allow_html=True)
 
 # ============================================================================
-# INTERACTIVE MODULES — RENDERED BASED ON QUEST CATEGORY
+# INTERACTIVE MODULES — LIGHT THEME INTERFACES
 # ============================================================================
 category = quest["category"]
 
@@ -728,15 +554,15 @@ if category == "language":
         '<div style="display:flex; align-items:center; gap:10px;">'
         '<div style="font-size:2rem;">__FLAG__</div>'
         '<div>'
-        '<div style="font-size:0.75rem; color:#8b949e; text-transform:uppercase; letter-spacing:1px;">__LANG__</div>'
+        '<div style="font-size:0.75rem; color:#64748b; text-transform:uppercase; letter-spacing:1px;">__LANG__</div>'
         '<div class="drx-quest-title" style="margin-bottom:2px;">__WORD__</div>'
         '</div>'
         '</div>'
-        '<div style="margin-top:14px; padding:14px; background:rgba(0,240,255,0.06); border-radius:12px; border:1px solid rgba(0,240,255,0.25);">'
-        '<div style="font-size:0.72rem; color:#00f0ff; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🔊 Read Aloud Guide</div>'
-        '<div style="font-family:\'Poppins\',sans-serif; font-weight:800; font-size:1.3rem; color:#00f0ff; text-shadow:0 0 14px rgba(0,240,255,0.6);">__PRON__</div>'
+        '<div style="margin-top:14px; padding:14px; background:#f0fdfa; border-radius:12px; border:1px solid #b2f2bb;">'
+        '<div style="font-size:0.72rem; color:#0e7490; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🔊 Read Aloud Guide</div>'
+        '<div style="font-family:\'Poppins\',sans-serif; font-weight:800; font-size:1.3rem; color:#0e7490;">__PRON__</div>'
         '</div>'
-        '<div class="drx-quest-desc" style="margin-top:14px; font-style:italic;">"__MEANING__"</div>'
+        '<div class="drx-quest-desc" style="margin-top:14px; font-style:italic; color:#334155;">"__MEANING__"</div>'
         '</div>'
     )
     vocab_html = (
@@ -755,34 +581,34 @@ if category == "language":
 elif category == "art":
     st.markdown(
         '<div class="drx-card drx-card-gold"><span class="drx-tag drx-tag-weekend">🎨 ZEN PAINTING DECK</span>'
-        '<div class="drx-quest-desc">Pick a neon brush, choose your size, and sketch freely over the guide outline below.</div></div>',
+        '<div class="drx-quest-desc">Pick a vibrant neon tone, alter your brush width, and doodle cleanly across the canvas guide layout.</div></div>',
         unsafe_allow_html=True,
     )
     PAINT_HTML = """
-    <div style="background:#0d1117; padding:14px; font-family:Inter,sans-serif;">
+    <div style="background:#ffffff; padding:14px; font-family:Inter,sans-serif;">
       <div id="toolbar" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <span style="color:#8b949e; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Brush:</span>
-        <button onclick="setColor('#ff4b4b')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#ff4b4b;cursor:pointer;box-shadow:0 0 10px #ff4b4b;"></button>
-        <button onclick="setColor('#00f0ff')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#00f0ff;cursor:pointer;box-shadow:0 0 10px #00f0ff;"></button>
-        <button onclick="setColor('#ffd700')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#ffd700;cursor:pointer;box-shadow:0 0 10px #ffd700;"></button>
-        <button onclick="setColor('#7CFC00')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#7CFC00;cursor:pointer;box-shadow:0 0 10px #7CFC00;"></button>
-        <button onclick="setColor('#ffffff')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#ffffff;cursor:pointer;box-shadow:0 0 10px #ffffff;"></button>
-        <span style="color:#8b949e; font-size:0.75rem; margin-left:12px;">Size:</span>
+        <span style="color:#64748b; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Brush:</span>
+        <button onclick="setColor('#ff4b4b')" style="width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:#ff4b4b;cursor:pointer;box-shadow:0 0 6px #ff4b4b;"></button>
+        <button onclick="setColor('#00b4d8')" style="width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:#00b4d8;cursor:pointer;box-shadow:0 0 6px #00b4d8;"></button>
+        <button onclick="setColor('#ffbc00')" style="width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:#ffbc00;cursor:pointer;box-shadow:0 0 6px #ffbc00;"></button>
+        <button onclick="setColor('#4caf50')" style="width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:#4caf50;cursor:pointer;box-shadow:0 0 6px #4caf50;"></button>
+        <button onclick="setColor('#1e293b')" style="width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:#1e293b;cursor:pointer;box-shadow:0 0 6px #1e293b;"></button>
+        <span style="color:#64748b; font-size:0.75rem; margin-left:12px;">Size:</span>
         <input type="range" min="2" max="24" value="6" id="brushSize" style="width:100px;">
-        <button onclick="clearCanvas()" style="background:linear-gradient(135deg,#ff4b4b,#ff7a45); color:white; border:none; padding:6px 14px; border-radius:10px; font-weight:700; cursor:pointer;">Clear</button>
+        <button onclick="clearCanvas()" style="background:#f1f5f9; color:#1e293b; border:1px solid #cbd5e1; padding:6px 14px; border-radius:10px; font-weight:700; cursor:pointer;">Clear</button>
       </div>
-      <canvas id="zenCanvas" width="760" height="420" style="width:100%; max-width:760px; border-radius:14px; background:#161b22; border:1px solid rgba(255,255,255,0.1); touch-action:none; cursor:crosshair;"></canvas>
+      <canvas id="zenCanvas" width="760" height="420" style="width:100%; max-width:760px; border-radius:14px; background:#f8fafc; border:1px solid #e2e8f0; touch-action:none; cursor:crosshair;"></canvas>
     </div>
     <script>
       const canvas = document.getElementById('zenCanvas');
       const ctx = canvas.getContext('2d');
       let drawing = false;
-      let currentColor = '#00f0ff';
+      let currentColor = '#00b4d8';
       let lastX = 0, lastY = 0;
 
       function drawGuide() {
         ctx.clearRect(0,0,canvas.width, canvas.height);
-        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(150, 210, 90, 0, Math.PI*2);
@@ -828,8 +654,6 @@ elif category == "art":
         ctx.strokeStyle = currentColor;
         ctx.lineWidth = size;
         ctx.lineCap = 'round';
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = currentColor;
         ctx.beginPath();
         ctx.moveTo(lastX, lastY);
         ctx.lineTo(pos.x, pos.y);
@@ -853,18 +677,18 @@ elif category == "art":
 elif category == "mindfulness":
     st.markdown(
         '<div class="drx-card drx-card-cyan"><span class="drx-tag drx-tag-weekday">⏱️ MIND-SYNC TIMER</span>'
-        '<div class="drx-quest-desc">Start the 3-minute breathing pause and let your mind reset before the next move.</div></div>',
+        '<div class="drx-quest-desc">Start the 3-minute breathing break to align your target intentions.</div></div>',
         unsafe_allow_html=True,
     )
     TIMER_HTML = """
-    <div style="background:#0d1117; padding:24px; border-radius:16px; text-align:center; font-family:Inter,sans-serif;">
-      <div id="display" style="font-family:'Poppins',sans-serif; font-size:4rem; font-weight:900; color:#00f0ff; text-shadow:0 0 26px rgba(0,240,255,0.7); letter-spacing:2px;">03:00</div>
+    <div style="background:#ffffff; padding:24px; border-radius:16px; text-align:center; font-family:Inter,sans-serif;">
+      <div id="display" style="font-family:'Poppins',sans-serif; font-size:4rem; font-weight:900; color:#00b4d8; letter-spacing:2px;">03:00</div>
       <div style="margin-top:14px; display:flex; justify-content:center; gap:12px;">
-        <button onclick="startTimer()" style="background:linear-gradient(135deg,#00f0ff,#0090ff); color:#0d1117; border:none; padding:10px 22px; border-radius:12px; font-weight:800; cursor:pointer; box-shadow:0 0 16px rgba(0,240,255,0.4);">▶ Start</button>
-        <button onclick="pauseTimer()" style="background:rgba(255,255,255,0.08); color:#e6edf3; border:1px solid rgba(255,255,255,0.2); padding:10px 22px; border-radius:12px; font-weight:800; cursor:pointer;">⏸ Pause</button>
-        <button onclick="resetTimer()" style="background:rgba(255,255,255,0.08); color:#e6edf3; border:1px solid rgba(255,255,255,0.2); padding:10px 22px; border-radius:12px; font-weight:800; cursor:pointer;">↺ Reset</button>
+        <button onclick="startTimer()" style="background:#00b4d8; color:#fff; border:none; padding:10px 22px; border-radius:12px; font-weight:800; cursor:pointer;">▶ Start</button>
+        <button onclick="pauseTimer()" style="background:#f1f5f9; color:#1e293b; border:1px solid #cbd5e1; padding:10px 22px; border-radius:12px; font-weight:800; cursor:pointer;">⏸ Pause</button>
+        <button onclick="resetTimer()" style="background:#f1f5f9; color:#1e293b; border:1px solid #cbd5e1; padding:10px 22px; border-radius:12px; font-weight:800; cursor:pointer;">↺ Reset</button>
       </div>
-      <div id="celebration" style="margin-top:18px; font-size:1.4rem; font-weight:800; color:#ffd700; text-shadow:0 0 16px rgba(255,215,0,0.6); display:none;">
+      <div id="celebration" style="margin-top:18px; font-size:1.2rem; font-weight:800; color:#ffbc00; display:none;">
         🎉 Beautifully done. You're centered. 🎉
       </div>
     </div>
@@ -889,8 +713,7 @@ elif category == "mindfulness":
             clearInterval(intervalId);
             intervalId = null;
             document.getElementById('celebration').style.display = 'block';
-            document.getElementById('display').style.color = '#ffd700';
-            document.getElementById('display').style.textShadow = '0 0 26px rgba(255,215,0,0.8)';
+            document.getElementById('display').style.color = '#ffbc00';
           }
         }, 1000);
       }
@@ -901,41 +724,38 @@ elif category == "mindfulness":
         pauseTimer();
         remaining = totalSeconds;
         document.getElementById('celebration').style.display = 'none';
-        document.getElementById('display').style.color = '#00f0ff';
-        document.getElementById('display').style.textShadow = '0 0 26px rgba(0,240,255,0.7)';
+        document.getElementById('display').style.color = '#00b4d8';
         render();
       }
       render();
     </script>
     """
     st.markdown('<div class="drx-module-frame">', unsafe_allow_html=True)
-    components.html(TIMER_HTML, height=280, scrolling=False)
+    components.html(TIMER_HTML, height=260, scrolling=False)
     st.markdown('</div>', unsafe_allow_html=True)
 
 elif category == "chaos":
     opt1, opt2 = st.session_state.current_chaos
     st.markdown(
         '<div class="drx-card drx-card-coral"><span class="drx-tag drx-tag-weekend">🪙 THE DESTINY FLIP</span>'
-        '<div class="drx-quest-desc">Let fate resolve your decision paralysis. Tap the coin to flip it.</div></div>',
+        '<div class="drx-quest-desc">Let random design choices solve minor mental lockups. Tap below to spin.</div></div>',
         unsafe_allow_html=True,
     )
     COIN_HTML = """
-    <div style="background:#0d1117; padding:24px; text-align:center; font-family:Inter,sans-serif;">
-      <div style="display:flex; justify-content:space-around; margin-bottom:18px; color:#8b949e; font-weight:700; font-size:0.85rem;">
+    <div style="background:#ffffff; padding:24px; text-align:center; font-family:Inter,sans-serif;">
+      <div style="display:flex; justify-content:space-around; margin-bottom:18px; color:#64748b; font-weight:700; font-size:0.85rem;">
         <div>🅰️ __OPT1__</div>
         <div>🅱️ __OPT2__</div>
       </div>
       <div id="scene" style="perspective:600px; display:flex; justify-content:center;">
-        <div id="coin" onclick="flipCoin()" style="width:120px; height:120px; border-radius:50%; position:relative; transform-style:preserve-3d; transition:transform 1.1s cubic-bezier(.2,.8,.2,1); cursor:pointer; background:radial-gradient(circle at 35% 30%, #ffe97a, #ffd700 60%, #b8860b 100%); box-shadow:0 0 30px rgba(255,215,0,0.55); display:flex; align-items:center; justify-content:center; font-size:2.2rem;">🪙</div>
+        <div id="coin" onclick="flipCoin()" style="width:100px; height:100px; border-radius:50%; position:relative; transform-style:preserve-3d; transition:transform 1.1s cubic-bezier(.2,.8,.2,1); cursor:pointer; background:radial-gradient(circle at 35% 30%, #fff3b0, #ffbc00 70%, #d4a373 100%); box-shadow:0 4px 10px rgba(0,0,0,0.1); display:flex; align-items:center; justify-content:center; font-size:2rem;">🪙</div>
       </div>
-      <div id="result" style="margin-top:20px; font-family:'Poppins',sans-serif; font-weight:900; font-size:1.5rem; color:#ff8080; text-shadow:0 0 16px rgba(255,75,75,0.6); min-height:2rem;"></div>
-      <button onclick="flipCoin()" style="margin-top:10px; background:linear-gradient(135deg,#ff4b4b,#ff7a45); color:white; border:none; padding:10px 24px; border-radius:12px; font-weight:800; cursor:pointer; box-shadow:0 0 16px rgba(255,75,75,0.4);">Flip the Coin</button>
+      <div id="result" style="margin-top:20px; font-family:'Poppins',sans-serif; font-weight:900; font-size:1.4rem; color:#ff4b4b; min-height:2rem;"></div>
+      <button onclick="flipCoin()" style="margin-top:10px; background:#ff4b4b; color:white; border:none; padding:10px 24px; border-radius:12px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(255,75,75,0.2);">Flip the Coin</button>
     </div>
     <script>
       const options = ["__OPT1__", "__OPT2__"];
-      let spins = 0;
       function flipCoin() {
-        spins += 1;
         const coin = document.getElementById('coin');
         const extraTurns = 4 + Math.floor(Math.random()*3);
         const finalIndex = Math.random() < 0.5 ? 0 : 1;
@@ -956,14 +776,6 @@ elif category == "chaos":
         st.session_state.current_chaos = random.choice(CHAOS_OPTIONS)
         st.rerun()
 
-else:
-    st.markdown(
-        '<div class="drx-card drx-card-gold"><span class="drx-tag drx-tag-weekend">⭐ FREESTYLE QUEST</span>'
-        '<div class="drx-quest-desc">This adventure runs on pure willpower — no gadgets required. '
-        'Just commit, execute, and log it in your Archive of Glory when you\'re done.</div></div>',
-        unsafe_allow_html=True,
-    )
-
 st.markdown('<hr class="drx-divider">', unsafe_allow_html=True)
 
 # ============================================================================
@@ -972,71 +784,40 @@ st.markdown('<hr class="drx-divider">', unsafe_allow_html=True)
 st.markdown('<div class="drx-section-header">🔔 Wake-Up Alerts</div>', unsafe_allow_html=True)
 
 NOTIF_HTML = """
-<div style="background:#0d1117; padding:20px; border-radius:16px; font-family:Inter,sans-serif;">
-  <div style="color:#c9d1d9; font-size:0.92rem; margin-bottom:14px;">
-    Enable browser notifications so DayRise can ping you the moment a new quest drops.
+<div style="background:#ffffff; padding:20px; border-radius:16px; font-family:Inter,sans-serif; border:1px solid #e2e8f0;">
+  <div style="color:#475569; font-size:0.92rem; margin-bottom:14px;">
+    Enable browser notifications so DayRise can ping you directly.
   </div>
   <div style="display:flex; gap:12px; flex-wrap:wrap;">
-    <button onclick="requestPerm()" style="background:linear-gradient(135deg,#00f0ff,#0090ff); color:#0d1117; border:none; padding:10px 20px; border-radius:12px; font-weight:800; cursor:pointer; box-shadow:0 0 16px rgba(0,240,255,0.4);">🔔 Enable Alerts</button>
-    <button onclick="sendTest()" style="background:linear-gradient(135deg,#ffd700,#ff9d00); color:#0d1117; border:none; padding:10px 20px; border-radius:12px; font-weight:800; cursor:pointer; box-shadow:0 0 16px rgba(255,215,0,0.4);">📣 Send Test Notification</button>
+    <button onclick="requestPerm()" style="background:#00b4d8; color:#fff; border:none; padding:10px 20px; border-radius:12px; font-weight:800; cursor:pointer;">🔔 Enable Alerts</button>
+    <button onclick="sendTest()" style="background:#ffbc00; color:#fff; border:none; padding:10px 20px; border-radius:12px; font-weight:800; cursor:pointer;">📣 Send Test Notification</button>
   </div>
-  <div id="notifStatus" style="margin-top:12px; font-size:0.85rem; color:#8b949e;"></div>
+  <div id="notifStatus" style="margin-top:12px; font-size:0.85rem; color:#64748b;"></div>
 </div>
 <script>
   function requestPerm() {
-    if (!('Notification' in window)) {
-      document.getElementById('notifStatus').innerText = 'This browser does not support notifications.';
+    if (!('Notification' in window)) {{
+      document.getElementById('notifStatus').innerText = 'Not supported in this browser.';
       return;
-    }
-    Notification.requestPermission().then(function(perm) {
+    }}
+    Notification.requestPermission().then(function(perm) {{
       document.getElementById('notifStatus').innerText = 'Permission: ' + perm;
-    });
+    }});
   }
-  function sendTest() {
-    if (!('Notification' in window)) {
-      document.getElementById('notifStatus').innerText = 'This browser does not support notifications.';
-      return;
-    }
-    if (Notification.permission === 'granted') {
-      new Notification('🌅 DayRise Adventures', { body: "Today's quest is ready. Time to rise!" });
-    } else {
+  function sendTest() {{
+    if (Notification.permission === 'granted') {{
+      new Notification('🌅 DayRise Adventures', {{ body: "Today's quest is ready!" }});
+    }} else {{
       document.getElementById('notifStatus').innerText = 'Please enable alerts first.';
-    }
+    }}
   }
 </script>
 """
 st.markdown('<div class="drx-module-frame">', unsafe_allow_html=True)
-components.html(NOTIF_HTML, height=190, scrolling=False)
+components.html(NOTIF_HTML, height=180, scrolling=False)
 st.markdown('</div>', unsafe_allow_html=True)
 
-with st.expander("📲 Integration Guide — Auto-Open on Your Lockscreen at 7:30 AM"):
-    st.markdown(
-        """
-        <div class="drx-card drx-card-cyan">
-            <div class="drx-quest-title">🍎 iOS Shortcuts Setup</div>
-            <div class="drx-quest-desc">
-                1. Deploy this app and copy its live URL.<br>
-                2. Open the <b>Shortcuts</b> app → <b>Automation</b> tab → <b>+</b> → <b>Create Personal Automation</b>.<br>
-                3. Choose <b>Time of Day</b> → set to <b>7:30 AM</b> → Daily.<br>
-                4. Add action <b>Open App</b> → select <b>Safari</b>, or add <b>Open URL</b> with your DayRise link.<br>
-                5. Turn off "Ask Before Running" so it fires automatically each morning.
-            </div>
-        </div>
-        <div class="drx-card drx-card-coral">
-            <div class="drx-quest-title">🤖 Android (MacroDroid / Tasker) Setup</div>
-            <div class="drx-quest-desc">
-                1. In <b>MacroDroid</b>, create a new macro.<br>
-                2. Trigger: <b>Day/Time</b> → set to <b>7:30 AM</b>, repeat daily.<br>
-                3. Action: <b>Launch Browser</b> or <b>Open URL</b> → paste your deployed DayRise URL.<br>
-                4. Optional: chain a <b>Screen On</b> action beforehand so the phone wakes and slides open the app automatically.<br>
-                5. Save and enable the macro — your quest will be ready the moment you wake up.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
 st.markdown(
-    '<div style="text-align:center; color:#6e7681; font-size:0.8rem; margin-top:24px;">Rise. Quest. Repeat. 🌅</div>',
+    '<div style="text-align:center; color:#94a3b8; font-size:0.8rem; margin-top:24px;">Rise. Quest. Repeat. 🌅</div>',
     unsafe_allow_html=True,
 )
